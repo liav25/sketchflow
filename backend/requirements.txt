@@ -1,0 +1,19 @@
+# FastAPI and ASGI server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# File handling and validation
+python-multipart==0.0.6
+Pillow==10.1.0
+
+# Utilities
+python-dotenv==1.0.0
+pydantic==2.11.0
+pydantic-settings==2.10.1
+
+# LangGraph and LangSmith for AI agents
+langgraph>=0.2.74
+langsmith>=0.1.0
+langchain-openai==0.3.33
+langchain-anthropic==0.3.20
+langchain-core>=0.3.76

@@ -1,0 +1,25 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import List
+
+
+class Settings(BaseSettings):
+    # App settings
+    app_name: str = "SketchFlow Backend"
+    debug: bool = False
+    
+    # CORS settings (dev-friendly: keep as raw string to avoid parsing issues)
+    # In dev we allow-all via app.main; this value is not critical.
+    allowed_origins: str = "*"
+    
+    # File upload settings
+    max_file_size_mb: int = 10
+    allowed_file_types: List[str] = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+    
+    # Storage settings
+    storage_path: str = "storage"
+    
+    # Pydantic v2 style config: ignore unknown env vars to avoid dev friction
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+settings = Settings()
