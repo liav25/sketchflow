@@ -1,8 +1,10 @@
 from typing import Dict, Any
 from datetime import datetime
+import asyncio
 
 
 from app.services.graph_workflow import SketchConversionGraph
+from app.core.config import settings
 
 
 class ConversionService:
@@ -82,6 +84,48 @@ class ConversionService:
     
     async def convert(self, file_path: str, format: str, notes: str, job_id: str) -> Dict[str, Any]:
         """Run the 3-agent conversion pipeline using LangGraph with validation loop."""
+        # Dev mock: short-circuit the pipeline if enabled
+        if settings.mock_mode:
+            if settings.mock_latency_ms and settings.mock_latency_ms > 0:
+                await asyncio.sleep(settings.mock_latency_ms / 1000.0)
+
+            code = (
+                f"""flowchart TD
+    A[Start] --> B[{notes if notes else 'Process'}]
+    B --> C[Decision]
+    C -->|Yes| D[Success]
+    C -->|No| E[Retry]
+    E --> B
+    D --> F[End]"""
+                if format == "mermaid"
+                else f"""<mxfile host="app.diagrams.net">
+  <diagram name=\"Page-1\">
+    <mxGraphModel dx=\"800\" dy=\"600\" grid=\"1\" gridSize=\"10\" guides=\"1\">
+      <root>
+        <mxCell id=\"0\"/>
+        <mxCell id=\"1\" parent=\"0\"/>
+        <mxCell id=\"2\" value=\"Start\" style=\"ellipse;whiteSpace=wrap;html=1;\" vertex=\"1\" parent=\"1\">
+          <mxGeometry x=\"40\" y=\"40\" width=\"80\" height=\"40\" as=\"geometry\"/>
+        </mxCell>
+        <mxCell id=\"3\" value=\"{notes if notes else 'Process'}\" style=\"rounded=1;whiteSpace=wrap;html=1;\" vertex=\"1\" parent=\"1\">
+          <mxGeometry x=\"160\" y=\"40\" width=\"120\" height=\"60\" as=\"geometry\"/>
+        </mxCell>
+        <mxCell id=\"4\" value=\"End\" style=\"ellipse;whiteSpace=wrap;html=1;\" vertex=\"1\" parent=\"1\">
+          <mxGeometry x=\"320\" y=\"40\" width=\"80\" height=\"40\" as=\"geometry\"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>"""
+            )
+
+            return {
+                "format": format,
+                "code": code,
+                "job_id": job_id,
+                "processing_time": datetime.now().isoformat(),
+                "agents_used": ["mock"],
+            }
 
         print(f"Starting conversion pipeline for job {job_id}")
 

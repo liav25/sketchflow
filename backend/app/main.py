@@ -62,6 +62,7 @@ async def convert_sketch(
     file: UploadFile = File(...),
     format: Literal["mermaid", "drawio"] = Form(...),
     notes: str = Form(""),
+    mock: bool = Form(False),
 ):
     # Dev mode: skip file type/size validation to avoid friction
     file_content = await file.read()
@@ -86,6 +87,16 @@ async def convert_sketch(
     try:
         # Generate job ID
         job_id = str(uuid.uuid4())
+
+        # If mocking is enabled, short-circuit and return synthetic output
+        if settings.mock_mode or mock:
+            result = await conversion_service.convert(
+                file_path="mock://noop",
+                format=format,
+                notes=notes,
+                job_id=job_id,
+            )
+            return ConversionResponse(job_id=job_id, status="completed", result=result)
         
         # Save uploaded file
         upload_dir = os.path.join(settings.storage_path, "uploads")

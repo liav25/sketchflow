@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     # App settings
     app_name: str = "SketchFlow Backend"
     debug: bool = False
+    # Mocking settings (useful in dev)
+    mock_mode: bool = False  # When true, conversion returns mock output
+    mock_latency_ms: int = 0  # Optional artificial delay for mocks
     
     # CORS settings (dev-friendly: keep as raw string to avoid parsing issues)
     # In dev we allow-all via app.main; this value is not critical.

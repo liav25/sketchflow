@@ -9,6 +9,10 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline';
 import type { DiagramFormat } from '@/app/page';
+import dynamic from 'next/dynamic';
+
+// Dynamically load the Mermaid preview to avoid SSR issues
+const MermaidPreview = dynamic(() => import('./MermaidPreview'), { ssr: false });
 
 interface DiagramPreviewProps {
   format: DiagramFormat;
@@ -102,20 +106,10 @@ export default function DiagramPreview({
                 Diagram Preview
               </h3>
               
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center min-h-[300px] flex items-center justify-center">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center min-h-[300px] flex items-center justify-center">
                 {format === 'mermaid' ? (
-                  <div className="space-y-4">
-                    <div className="text-blue-600 dark:text-blue-400">
-                      <svg className="mx-auto h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-300">
-                      Mermaid diagram ready!
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Use the code below in any Mermaid-compatible tool
-                    </p>
+                  <div className="w-full max-h-[500px] overflow-auto">
+                    <MermaidPreview code={diagramCode} />
                   </div>
                 ) : (
                   <div className="space-y-4">

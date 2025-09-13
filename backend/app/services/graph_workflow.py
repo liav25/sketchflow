@@ -3,7 +3,8 @@ LangGraph workflow for the SketchFlow conversion pipeline.
 
 Nodes:
 - vision_analysis_node: Analyze sketch → instructions
-- diagram_generation_node: Generate diagram from instructions
+- mermaid_generation_node: Generate Mermaid diagram from instructions
+- drawio_generation_node: Generate Draw.io diagram from instructions
 - validation_node: Validate and loop back if needed
 """
 
@@ -38,13 +39,37 @@ class SketchConversionGraph:
 
         # Register nodes
         workflow.add_node("vision_analysis_node", self.vision_agent.analyze_sketch)
-        workflow.add_node("diagram_generation_node", self.generation_agent.generate_diagram)
+        # Split generation into per-format nodes (deterministic routing)
+        workflow.add_node("mermaid_generation_node", self.generation_agent.generate_diagram)
+        workflow.add_node("drawio_generation_node", self.generation_agent.generate_diagram)
         workflow.add_node("validation_node", self.validation_agent.validate)
+
+        # Router: deterministically select generation node based on state['format']
+        def format_router(state: SketchConversionState) -> str:
+            fmt = str(state.get("format", "")).strip().lower()
+            mapping = {
+                "mermaid": "mermaid_generation_node",
+                "drawio": "drawio_generation_node",
+                "draw.io": "drawio_generation_node",
+            }
+            # Deterministic fallback: default to mermaid if unknown
+            return mapping.get(fmt, "mermaid_generation_node")
 
         # Edges
         workflow.set_entry_point("vision_analysis_node")
-        workflow.add_edge("vision_analysis_node", "diagram_generation_node")
-        workflow.add_edge("diagram_generation_node", "validation_node")
+        # Route to the correct generation node solely by format
+        workflow.add_conditional_edges(
+            "vision_analysis_node",
+            format_router,
+            {
+                "mermaid_generation_node": "mermaid_generation_node",
+                "drawio_generation_node": "drawio_generation_node",
+            },
+        )
+
+        # Both generation nodes flow into validation
+        workflow.add_edge("mermaid_generation_node", "validation_node")
+        workflow.add_edge("drawio_generation_node", "validation_node")
 
         # Conditional edge: loop back to generation if validation fails and retries remain
         def validation_router(state: SketchConversionState) -> str:
@@ -66,7 +91,8 @@ class SketchConversionGraph:
                     state["generation_instructions"] = (
                         f"{prior}\n\nApply these corrections strictly (retry {next_retry}):\n{corrections}"
                     )
-                return "diagram_generation_node"
+                # Route back to the correct generation node based on format
+                return format_router(state)
 
             # Exhausted retries → end with current best
             state["final_code"] = state.get("diagram_code", "")
@@ -77,7 +103,11 @@ class SketchConversionGraph:
         workflow.add_conditional_edges(
             "validation_node",
             validation_router,
-            {"diagram_generation_node": "diagram_generation_node", END: END},
+            {
+                "mermaid_generation_node": "mermaid_generation_node",
+                "drawio_generation_node": "drawio_generation_node",
+                END: END,
+            },
         )
 
         # Optional in-memory checkpointing
