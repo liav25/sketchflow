@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { deflateRaw } from 'pako';
 
 interface DrawioPreviewProps {
   xml: string;
@@ -27,17 +26,24 @@ export default function DrawioPreview({ xml }: DrawioPreviewProps) {
 
   // Build a proper #R URL (deflateRaw + base64, then used as-is after #R)
   useEffect(() => {
-    try {
-      if (!xml) {
-        setFallbackUrl(null);
-        return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!xml) {
+          if (!cancelled) setFallbackUrl(null);
+          return;
+        }
+        const { deflateRaw } = await import('pako');
+        const deflated = deflateRaw(new TextEncoder().encode(xml));
+        const b64 = uint8ToBase64(deflated);
+        if (!cancelled) setFallbackUrl(`https://app.diagrams.net/#R${b64}`);
+      } catch {
+        if (!cancelled) setFallbackUrl(null);
       }
-      const deflated = deflateRaw(new TextEncoder().encode(xml));
-      const b64 = uint8ToBase64(deflated);
-      setFallbackUrl(`https://app.diagrams.net/#R${b64}`);
-    } catch {
-      setFallbackUrl(null);
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [xml]);
 
   useEffect(() => {
