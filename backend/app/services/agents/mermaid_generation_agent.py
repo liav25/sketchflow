@@ -151,15 +151,29 @@ class MermaidGenerationAgent:
         Returns:
             Updated state with generated Mermaid diagram code
         """
-        print(f"Mermaid Generation Agent: Creating Mermaid diagram for job {state['job_id']}")
+        retry_count = int(state.get("retry_count", 0) or 0)
+        print(f"Mermaid Generation Agent: Creating Mermaid diagram for job {state['job_id']} (retry {retry_count})")
+        
+        # Handle retry logic and corrections
+        base_instructions = state.get('generation_instructions', '')
+        corrections = state.get('corrections', '').strip()
+        
+        # Build instructions with corrections for retries
+        if retry_count > 0 and corrections:
+            enhanced_instructions = f"{base_instructions}\n\nApply these corrections strictly (retry {retry_count + 1}):\n{corrections}"
+        else:
+            enhanced_instructions = base_instructions
+        
+        # Update retry count
+        state["retry_count"] = retry_count + 1
         
         # Get the Mermaid-specific generation prompt
         prompt = self.prompt_templates.get_mermaid_generation_prompt(
             description=state.get('sketch_description', ''),
-            instructions=state.get('generation_instructions', ''),
+            instructions=enhanced_instructions,
             suggested_type=self._detect_diagram_type(
                 state.get('sketch_description', ''),
-                state.get('generation_instructions', '')
+                enhanced_instructions
             )
         )
         

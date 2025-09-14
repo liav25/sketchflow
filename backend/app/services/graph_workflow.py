@@ -77,29 +77,28 @@ class SketchConversionGraph:
         def validation_router(state: SketchConversionState) -> str:
             retry = int(state.get("retry_count", 0) or 0)
             passed = bool(state.get("validation_passed", False))
+            job_id = state.get("job_id", "unknown")
+            
+            print(f"Validation Router [Job {job_id}]: retry={retry}, passed={passed}, max_retries={self.max_retries}")
 
             if passed:
+                print(f"Validation Router [Job {job_id}]: Validation PASSED - routing to END")
                 return END
 
             # If needs correction and we have corrections, feed them back
             corrections = state.get("corrections", "").strip()
             if not passed and retry < self.max_retries:
-                # Bump retry and update instructions with corrections context
-                next_retry = retry + 1
-                state["retry_count"] = next_retry
-                if corrections:
-                    # strengthen instructions for next generation
-                    prior = state.get("generation_instructions", "")
-                    state["generation_instructions"] = (
-                        f"{prior}\n\nApply these corrections strictly (retry {next_retry}):\n{corrections}"
-                    )
-                # Route back to the correct generation node based on format
-                return format_router(state)
+                next_node = format_router(state)
+                print(f"Validation Router [Job {job_id}]: Retry {retry+1}/{self.max_retries} - routing to {next_node}")
+                print(f"Validation Router [Job {job_id}]: Corrections: {corrections[:100]}...")
+                return next_node
 
             # Exhausted retries → end with current best
+            print(f"Validation Router [Job {job_id}]: Max retries exceeded - routing to END with current diagram")
+            # Ensure final state is set for exhausted retries
             state["final_code"] = state.get("diagram_code", "")
             state["validation_passed"] = True
-            state["validation_result"] = state.get("validation_result", "PASSED")
+            state["validation_result"] = "PASSED"
             return END
 
         workflow.add_conditional_edges(

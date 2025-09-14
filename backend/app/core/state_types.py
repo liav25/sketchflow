@@ -42,3 +42,5 @@ class SketchConversionState(TypedDict):
     retry_count: Optional[int]
     processing_time: Optional[str]
     agents_used: Optional[list]
+    thread_id: Optional[str]
+    previous_corrections: Optional[str]  # For circuit breaker logic

@@ -146,7 +146,19 @@ $diagram_code
 
 TARGET FORMAT: $target_format
 
-Please provide your validation in this exact format:
+Please provide your validation in BOTH formats for maximum compatibility:
+
+First, provide a JSON response in this format:
+```json
+{
+    "syntax_check": "Check for syntax errors, invalid elements, or formatting issues",
+    "accuracy_check": "Verify if the diagram accurately represents the original sketch",
+    "validation_result": "PASSED or NEEDS_CORRECTION",
+    "corrections": "Provide corrected diagram code if NEEDS_CORRECTION, otherwise None required"
+}
+```
+
+Then also provide the text format as backup:
 
 SYNTAX CHECK:
 [Check for syntax errors, invalid elements, or formatting issues]
@@ -160,7 +172,7 @@ VALIDATION RESULT:
 CORRECTIONS (if needed):
 [Provide corrected diagram code if NEEDS_CORRECTION, otherwise "None required"]
 
-Be thorough in your validation - accuracy and proper syntax are critical."""
+Be thorough in your validation - accuracy and proper syntax are critical. Use "PASSED" only when the diagram is syntactically correct and accurately represents the sketch."""
 
     def _get_mermaid_generation_template(self) -> str:
         """Mermaid-specific generation prompt template."""
