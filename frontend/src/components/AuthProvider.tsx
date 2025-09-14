@@ -22,6 +22,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Log configuration on startup
+  console.log('[AuthProvider] Configuration:', {
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    anonKeyLength: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length || 0
+  });
+
   useEffect(() => {
     console.log('[AuthProvider] Initializing auth state...');
     
@@ -81,7 +88,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
       async signOut() {
-        await supabase.auth.signOut();
+        console.log('[AuthProvider] Starting sign out...');
+        const { error } = await supabase.auth.signOut();
+        console.log('[AuthProvider] Sign out result:', { error });
+        if (error) {
+          console.error('[AuthProvider] Sign out error:', error);
+        }
       },
       async getAccessToken() {
         const { data } = await supabase.auth.getSession();

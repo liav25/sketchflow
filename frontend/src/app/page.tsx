@@ -21,6 +21,8 @@ export default function Home() {
   const [jobId, setJobId] = useState<string>('');
   const { user, getAccessToken } = useAuth();
 
+  console.log('[HomePage] Page loaded, user state:', { hasUser: !!user });
+
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
     setConversionState('uploading');

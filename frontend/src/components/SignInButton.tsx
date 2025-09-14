@@ -40,8 +40,20 @@ export function SignInButton({ className = '' }: { className?: string }) {
 
 export function SignOutButton({ className = '' }: { className?: string }) {
   const { signOut } = useAuth();
+  
+  const handleSignOut = async () => {
+    console.log('[SignOutButton] Sign out button clicked');
+    try {
+      console.log('[SignOutButton] Calling signOut...');
+      await signOut();
+      console.log('[SignOutButton] signOut completed');
+    } catch (error) {
+      console.error('[SignOutButton] Error during sign out:', error);
+    }
+  };
+  
   return (
-    <button className={`btn-secondary ${className}`} onClick={() => signOut()}>
+    <button className={`btn-secondary ${className}`} onClick={handleSignOut}>
       Sign Out
     </button>
   );
