@@ -1,26 +1,128 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* SketchFlow Gentle Color System Variables */
+  --background: #faf0ca;
+  --foreground: #0d3b66;
+  --surface: #fefcf6;
+  --border: #e8e4dd;
+  --muted: #9a8c75;
+  --accent: #f4d35e;
+  --accent-warm: #ee964b;
+  --accent-vibrant: #f95738;
+  --navy: #0d3b66;
+  --cream: #faf0ca;
+  --golden: #f4d35e;
+  --orange: #ee964b;
+  --coral: #f95738;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #243b53;
+    --foreground: #faf0ca;
+    --surface: #334e68;
+    --border: #486581;
+    --muted: #9fb3c8;
+    --accent: #f4d35e;
+    --accent-warm: #ee964b;
+    --accent-vibrant: #f95738;
   }
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Utility Classes */
+.text-balance {
+  text-wrap: balance;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass-effect {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animation Classes */
+.animate-gradient {
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Button Styles with Gentle Color Palette */
+.btn-primary {
+  @apply inline-flex items-center justify-center px-6 py-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-amber-50 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  transform: translateY(0);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -5px rgba(51, 65, 85, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-6 py-3 bg-transparent hover:bg-yellow-50 text-slate-800 font-medium rounded-xl border-2 border-yellow-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2;
+}
+
+.btn-accent {
+  @apply inline-flex items-center justify-center px-6 py-3 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-slate-800 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2;
+}
+
+.btn-warm {
+  @apply inline-flex items-center justify-center px-6 py-3 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-amber-50 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center px-4 py-2 hover:bg-amber-200 text-neutral-700 font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2;
 }
