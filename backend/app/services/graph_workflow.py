@@ -18,7 +18,8 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from app.core.state_types import SketchConversionState
 from app.services.agents.vision_agent import VisionAnalysisAgent
-from app.services.agents.generation_agent import DiagramGenerationAgent
+from app.services.agents.mermaid_generation_agent import MermaidGenerationAgent
+from app.services.agents.drawio_generation_agent import DrawioGenerationAgent
 from app.services.agents.validation_agent import ValidationAgent
 
 
@@ -29,7 +30,8 @@ class SketchConversionGraph:
 
     def __init__(self, max_retries: int = 2):
         self.vision_agent = VisionAnalysisAgent()
-        self.generation_agent = DiagramGenerationAgent()
+        self.mermaid_agent = MermaidGenerationAgent()
+        self.drawio_agent = DrawioGenerationAgent()
         self.validation_agent = ValidationAgent()
         self.max_retries = max_retries
         self.graph = self._build_graph()
@@ -39,9 +41,9 @@ class SketchConversionGraph:
 
         # Register nodes
         workflow.add_node("vision_analysis_node", self.vision_agent.analyze_sketch)
-        # Split generation into per-format nodes (deterministic routing)
-        workflow.add_node("mermaid_generation_node", self.generation_agent.generate_diagram)
-        workflow.add_node("drawio_generation_node", self.generation_agent.generate_diagram)
+        # Split generation into specialized per-format nodes
+        workflow.add_node("mermaid_generation_node", self.mermaid_agent.generate_mermaid_diagram)
+        workflow.add_node("drawio_generation_node", self.drawio_agent.generate_drawio_diagram)
         workflow.add_node("validation_node", self.validation_agent.validate)
 
         # Router: deterministically select generation node based on state['format']
