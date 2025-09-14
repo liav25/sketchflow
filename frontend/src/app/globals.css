@@ -1,20 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  /* SketchFlow Gentle Color System Variables */
-  --background: #faf0ca;
-  --foreground: #0d3b66;
-  --surface: #fefcf6;
-  --border: #e8e4dd;
-  --muted: #9a8c75;
-  --accent: #f4d35e;
-  --accent-warm: #ee964b;
-  --accent-vibrant: #f95738;
-  --navy: #0d3b66;
-  --cream: #faf0ca;
-  --golden: #f4d35e;
-  --orange: #ee964b;
-  --coral: #f95738;
+  /* Minimal modern palette */
+  --background: #ffffff; /* white background */
+  --surface: #F6F5F5;   /* soft paper */
+  --border: #D3E0EA;    /* cool border */
+  --foreground: #1f2937; /* neutral text */
+  --muted: #6b7280;      /* muted text */
+  --accent: #1687A7;     /* primary */
+  --accent-dark: #276678; /* secondary */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -98,7 +92,7 @@ body {
 
 /* Button Styles with Gentle Color Palette */
 .btn-primary {
-  @apply inline-flex items-center justify-center px-6 py-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-amber-50 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center justify-center px-6 py-3 bg-[color:var(--accent)] hover:bg-[color:var(--accent-dark)] active:bg-[color:var(--accent-dark)] text-white font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   transform: translateY(0);
 }
 
@@ -112,17 +106,17 @@ body {
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center px-6 py-3 bg-transparent hover:bg-yellow-50 text-slate-800 font-medium rounded-xl border-2 border-yellow-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2;
+  @apply inline-flex items-center justify-center px-6 py-3 bg-transparent hover:bg-[color:var(--surface)] text-[color:var(--accent-dark)] font-medium rounded-xl border-2 border-[color:var(--accent)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2;
 }
 
 .btn-accent {
-  @apply inline-flex items-center justify-center px-6 py-3 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-slate-800 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2;
+  @apply inline-flex items-center justify-center px-6 py-3 bg-[color:var(--accent)] hover:bg-[color:var(--accent-dark)] active:bg-[color:var(--accent-dark)] text-white font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-2;
 }
 
 .btn-warm {
-  @apply inline-flex items-center justify-center px-6 py-3 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-amber-50 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2;
+  @apply inline-flex items-center justify-center px-6 py-3 bg-[color:var(--accent-dark)] hover:bg-[color:var(--accent)] active:bg-[color:var(--accent-dark)] text-white font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-dark)] focus:ring-offset-2;
 }
 
 .btn-ghost {
-  @apply inline-flex items-center justify-center px-4 py-2 hover:bg-amber-200 text-neutral-700 font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2;
+  @apply inline-flex items-center justify-center px-4 py-2 hover:bg-[color:var(--surface)] text-neutral-700 font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--border)] focus:ring-offset-2;
 }

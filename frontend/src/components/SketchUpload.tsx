@@ -98,10 +98,10 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
       <div
         className={`relative border-2 border-dashed rounded-3xl p-8 md:p-12 text-center transition-all duration-400 group ${
           isDragOver
-            ? 'border-yellow-400 bg-yellow-50/50 scale-102'
+            ? 'border-primary-400 bg-primary-50/50 scale-102'
             : validationError
-            ? 'border-red-300 bg-red-50/30'
-            : 'border-neutral-300 hover:border-yellow-400 bg-amber-50/80'
+            ? 'border-error-300 bg-error-50/30'
+            : 'border-brand-muted hover:border-primary-400 bg-brand-surface'
         } backdrop-blur-sm shadow-elevation-2 hover:shadow-elevation-4`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -113,15 +113,15 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
         }`}>
           {isDragOver ? (
             <div className="relative">
-              <SparklesIconSolid className="mx-auto h-20 w-20 text-yellow-500 animate-pulse" />
-              <div className="absolute inset-0 bg-yellow-400/20 rounded-full blur-xl animate-pulse"></div>
+              <SparklesIconSolid className="mx-auto h-20 w-20 text-primary-500 animate-pulse" />
+              <div className="absolute inset-0 bg-primary-400/20 rounded-full blur-xl animate-pulse"></div>
             </div>
           ) : validationError ? (
-            <ExclamationTriangleIcon className="mx-auto h-20 w-20 text-red-500" />
+            <ExclamationTriangleIcon className="mx-auto h-20 w-20 text-error-500" />
           ) : (
             <div className="relative">
-              <PhotoIcon className="mx-auto h-20 w-20 text-neutral-400 transition-colors group-hover:text-yellow-500" />
-              <div className="absolute inset-0 bg-yellow-400/0 rounded-full blur-xl transition-all group-hover:bg-yellow-400/10"></div>
+              <PhotoIcon className="mx-auto h-20 w-20 text-neutral-400 transition-colors group-hover:text-primary-500" />
+              <div className="absolute inset-0 bg-primary-400/0 rounded-full blur-xl transition-all group-hover:bg-primary-400/10"></div>
             </div>
           )}
         </div>
@@ -140,8 +140,8 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
 
         {/* Error Message */}
         {validationError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-600 font-medium">{validationError}</p>
+          <div className="mb-6 p-4 bg-error-50 border border-error-200 rounded-xl">
+            <p className="text-error-600 font-medium">{validationError}</p>
           </div>
         )}
 
@@ -194,14 +194,14 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
         />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-yellow-50/20 via-transparent to-orange-50/20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary-50/30 via-transparent to-secondary-50/30 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       </div>
 
       {/* Tips Section */}
-      <div className="mt-8 bg-amber-50/80 backdrop-blur-sm rounded-2xl p-6 shadow-elevation-1 border border-neutral-200">
+      <div className="mt-8 bg-brand-surface backdrop-blur-sm rounded-2xl p-6 shadow-elevation-1 border border-brand-muted">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-            <LightBulbIcon className="w-5 h-5 text-orange-600" />
+          <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
+            <LightBulbIcon className="w-5 h-5 text-primary-600" />
           </div>
           <h4 className="text-lg font-bold text-slate-800">
             Tips for Best Results
@@ -211,16 +211,16 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
         <div className="grid sm:grid-cols-2 gap-4">
           <ul className="space-y-3">
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center mt-0.5">
-                <div className="w-2 h-2 rounded-full bg-yellow-600"></div>
+              <div className="w-5 h-5 rounded-full bg-primary-50 flex items-center justify-center mt-0.5">
+                <div className="w-2 h-2 rounded-full bg-primary-600"></div>
               </div>
               <span className="text-sm text-neutral-700">
                 Use clear, well-lit photos with good contrast
               </span>
             </li>
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center mt-0.5">
-                <div className="w-2 h-2 rounded-full bg-yellow-600"></div>
+              <div className="w-5 h-5 rounded-full bg-primary-50 flex items-center justify-center mt-0.5">
+                <div className="w-2 h-2 rounded-full bg-primary-600"></div>
               </div>
               <span className="text-sm text-neutral-700">
                 Ensure all text and shapes are clearly visible
@@ -229,16 +229,16 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
           </ul>
           <ul className="space-y-3">
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center mt-0.5">
-                <div className="w-2 h-2 rounded-full bg-yellow-600"></div>
+              <div className="w-5 h-5 rounded-full bg-primary-50 flex items-center justify-center mt-0.5">
+                <div className="w-2 h-2 rounded-full bg-primary-600"></div>
               </div>
               <span className="text-sm text-neutral-700">
                 Avoid shadows and reflections when possible
               </span>
             </li>
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-yellow-100 flex items-center justify-center mt-0.5">
-                <div className="w-2 h-2 rounded-full bg-yellow-600"></div>
+              <div className="w-5 h-5 rounded-full bg-primary-50 flex items-center justify-center mt-0.5">
+                <div className="w-2 h-2 rounded-full bg-primary-600"></div>
               </div>
               <span className="text-sm text-neutral-700">
                 Add context notes to improve AI accuracy

@@ -62,7 +62,7 @@ export default function MermaidPreview({ code }: MermaidPreviewProps) {
   return (
     <div className="w-full overflow-auto">
       {error ? (
-        <div className="text-sm text-red-600 dark:text-red-400">
+        <div className="text-sm text-error-600 dark:text-error-400">
           {error}
         </div>
       ) : (

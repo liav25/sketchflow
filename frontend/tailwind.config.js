@@ -7,86 +7,89 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // SketchFlow Gentle Color Palette
+      // SketchFlow New Minimal Palette
       colors: {
-        // Deep Navy Blue - Primary brand color
-        navy: {
-          50: '#f0f4f8',
-          100: '#d9e2ec',
-          200: '#bcccdc',
-          300: '#9fb3c8',
-          400: '#829ab1',
-          500: '#627d98',
-          600: '#486581',
-          700: '#334e68',
-          800: '#243b53',
-          900: '#0d3b66', // Main navy
-          950: '#102a43',
+        brand: {
+          background: '#ffffff',
+          surface: '#F6F5F5',
+          muted: '#D3E0EA',
+          primary: '#1687A7',
+          secondary: '#276678',
+          foreground: '#1f2937',
         },
-        // Warm Cream - Gentle backgrounds
-        cream: {
-          50: '#fefdfb',
-          100: '#fefcf6',
-          200: '#fcf7e9',
-          300: '#faf0ca', // Main cream
-          400: '#f7e6a3',
-          500: '#f4dc7c',
-          600: '#f0d155',
-          700: '#e6c547',
-          800: '#d4b63a',
-          900: '#c2a72d',
+        // Semantic scales used in components
+        primary: {
+          50: '#EAF6FB',
+          100: '#D3ECF5',
+          200: '#A7D9EB',
+          300: '#7BC6E1',
+          400: '#4FB3D7',
+          500: '#1687A7',
+          600: '#126F8A',
+          700: '#0E586E',
+          800: '#0B4051',
+          900: '#072A35',
         },
-        // Golden Yellow - Bright optimistic
-        golden: {
-          50: '#fefcf0',
-          100: '#fef9e0',
-          200: '#fef2c2',
-          300: '#fde895',
-          400: '#fcdd67',
-          500: '#f4d35e', // Main golden
-          600: '#e6c054',
-          700: '#d4a649',
-          800: '#c2933f',
-          900: '#b08035',
+        secondary: {
+          50: '#EAF2F4',
+          100: '#D3E0EA',
+          200: '#B6CCD7',
+          300: '#8FB0BF',
+          400: '#5F8E9F',
+          500: '#276678',
+          600: '#1F5463',
+          700: '#173F4E',
+          800: '#0F3039',
+          900: '#0A242B',
         },
-        // Warm Orange - Energetic friendly
-        orange: {
-          50: '#fef7f0',
-          100: '#feedde',
-          200: '#fdd9bd',
-          300: '#fcc49c',
-          400: '#fbaf7b',
-          500: '#ee964b', // Main orange
-          600: '#e58643',
-          700: '#d7763a',
-          800: '#c96632',
-          900: '#bb562a',
+        // Keep functional colors for status UIs
+        success: {
+          50: '#ECFDF5',
+          100: '#D1FAE5',
+          200: '#A7F3D0',
+          300: '#6EE7B7',
+          400: '#34D399',
+          500: '#10B981',
+          600: '#059669',
+          700: '#047857',
+          800: '#065F46',
+          900: '#064E3B',
         },
-        // Coral Red - Vibrant attention
-        coral: {
-          50: '#fef6f4',
-          100: '#fee9e5',
-          200: '#fdd3cb',
-          300: '#fcb8a8',
-          400: '#fa9d85',
-          500: '#f95738', // Main coral
-          600: '#f04e32',
-          700: '#e7452c',
-          800: '#de3c26',
-          900: '#d53320',
+        info: {
+          50: '#EFF6FF',
+          100: '#DBEAFE',
+          200: '#BFDBFE',
+          300: '#93C5FD',
+          400: '#60A5FA',
+          500: '#3B82F6',
+          600: '#2563EB',
+          700: '#1D4ED8',
+          800: '#1E40AF',
+          900: '#1E3A8A',
         },
-        // Neutral tones derived from the palette
-        neutral: {
-          50: '#faf9f7',
-          100: '#f2f0ec',
-          200: '#e8e4dd',
-          300: '#d6d0c4',
-          400: '#b8ae9d',
-          500: '#9a8c75',
-          600: '#7c6b55',
-          700: '#5e5242',
-          800: '#423a32',
-          900: '#2d2622',
+        warning: {
+          50: '#FFFBEB',
+          100: '#FEF3C7',
+          200: '#FDE68A',
+          300: '#FCD34D',
+          400: '#FBBF24',
+          500: '#F59E0B',
+          600: '#D97706',
+          700: '#B45309',
+          800: '#92400E',
+          900: '#78350F',
+        },
+        error: {
+          50: '#FEF2F2',
+          100: '#FEE2E2',
+          200: '#FECACA',
+          300: '#FCA5A5',
+          400: '#F87171',
+          500: '#EF4444',
+          600: '#DC2626',
+          700: '#B91C1C',
+          800: '#991B1B',
+          900: '#7F1D1D',
         },
       },
       // Typography System
