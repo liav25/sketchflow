@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@supabase/supabase-js": "^2.45.0",
     "mermaid": "^10.9.1",
     "next": "15.5.3",
     "@tailwindcss/postcss": "^4",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.55.0",
+    "@supabase/ssr": "^0.5.1",
     "@types/node": "^20",
     "@types/pako": "^2.0.4",
     "@types/react": "^19",

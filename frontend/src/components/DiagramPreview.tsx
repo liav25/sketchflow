@@ -18,6 +18,8 @@ import {
 } from '@heroicons/react/24/solid';
 import type { DiagramFormat } from '@/app/page';
 import dynamic from 'next/dynamic';
+import { useAuth } from '@/components/AuthProvider';
+import { supabase } from '@/lib/supabaseClient';
 
 // Dynamically load the Mermaid preview to avoid SSR issues
 const MermaidPreview = dynamic(() => import('./MermaidPreview'), { ssr: false });
@@ -25,18 +27,21 @@ const MermaidPreview = dynamic(() => import('./MermaidPreview'), { ssr: false })
 interface DiagramPreviewProps {
   format: DiagramFormat;
   diagramCode: string;
+  jobId?: string;
   onReset: () => void;
 }
 
 export default function DiagramPreview({
   format,
   diagramCode,
+  jobId,
   onReset,
 }: DiagramPreviewProps) {
   const [copied, setCopied] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const [shared, setShared] = useState(false);
   const [activeView, setActiveView] = useState<'preview' | 'code'>('preview');
+  const { user, signInWithGoogle } = useAuth();
 
   // Celebration effect on mount
   useEffect(() => {
@@ -47,8 +52,26 @@ export default function DiagramPreview({
   }, []);
 
   const handleCopyCode = async () => {
+    if (!user) {
+      sessionStorage.setItem('sf.redirect', window.location.pathname + window.location.search);
+      await signInWithGoogle();
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(diagramCode);
+      let code = diagramCode;
+      const apiBase = process.env.NEXT_PUBLIC_API_URL;
+      if (apiBase && jobId) {
+        // Try fetching authoritative code from backend (auth-protected)
+        const tok = (await supabase.auth.getSession()).data.session?.access_token
+        const tokenResp = await fetch(apiBase + `/api/conversions/${jobId}/code`, {
+          headers: tok ? { 'Authorization': `Bearer ${tok}` } : {},
+        });
+        if (tokenResp.ok) {
+          const data = await tokenResp.json();
+          code = data.code || code;
+        }
+      }
+      await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -56,9 +79,27 @@ export default function DiagramPreview({
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    if (!user) {
+      signInWithGoogle();
+      return;
+    }
+    let code = diagramCode;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL;
+    if (apiBase && jobId) {
+      try {
+        const tok = (await supabase.auth.getSession()).data.session?.access_token
+        const tokenResp = await fetch(apiBase + `/api/conversions/${jobId}/code`, {
+          headers: tok ? { 'Authorization': `Bearer ${tok}` } : {},
+        });
+        if (tokenResp.ok) {
+          const data = await tokenResp.json();
+          code = data.code || code;
+        }
+      } catch {}
+    }
     const element = document.createElement('a');
-    const file = new Blob([diagramCode], { type: 'text/plain' });
+    const file = new Blob([code], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = `sketchflow-diagram.${format === 'mermaid' ? 'mmd' : 'xml'}`;
     document.body.appendChild(element);
@@ -70,6 +111,10 @@ export default function DiagramPreview({
   };
 
   const handleShare = async () => {
+    if (!user) {
+      await signInWithGoogle();
+      return;
+    }
     if (navigator.share) {
       try {
         await navigator.share({
@@ -236,7 +281,17 @@ export default function DiagramPreview({
           ) : (
             <div className="space-y-6">
               {/* Code Editor Style Display */}
-              <div className="bg-neutral-900 rounded-2xl overflow-hidden shadow-elevation-4">
+              <div className="bg-neutral-900 rounded-2xl overflow-hidden shadow-elevation-4 relative">
+                {!user && (
+                  <div className="absolute inset-0 bg-neutral-900/80 backdrop-blur-sm flex items-center justify-center z-10">
+                    <div className="text-center space-y-4">
+                      <p className="text-neutral-200 text-lg">Sign in with Google to view and copy code</p>
+                      <button className="btn-primary px-6 py-3" onClick={() => signInWithGoogle()}>
+                        Sign in to Unlock
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="bg-neutral-800 px-6 py-4 border-b border-neutral-700 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">

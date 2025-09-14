@@ -5,6 +5,9 @@ import { ArrowRightIcon, SparklesIcon, ClockIcon, CheckCircleIcon } from '@heroi
 import SketchUpload from '@/components/SketchUpload';
 import ConversionForm from '@/components/ConversionForm';
 import DiagramPreview from '@/components/DiagramPreview';
+import { useAuth } from '@/components/AuthProvider';
+import { SignInButton, SignOutButton } from '@/components/SignInButton';
+import UserMenu from '@/components/UserMenu';
 
 export type ConversionState = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
 export type DiagramFormat = 'mermaid' | 'drawio';
@@ -15,6 +18,8 @@ export default function Home() {
   const [notes, setNotes] = useState('');
   const [format, setFormat] = useState<DiagramFormat>('mermaid');
   const [generatedDiagram, setGeneratedDiagram] = useState<string>('');
+  const [jobId, setJobId] = useState<string>('');
+  const { user, getAccessToken } = useAuth();
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -33,9 +38,14 @@ export default function Home() {
       formData.append('format', format);
       formData.append('notes', notes);
 
+      const headers: Record<string, string> = {};
+      const token = await getAccessToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch(`${apiBase}/api/convert`, {
         method: 'POST',
         body: formData,
+        headers,
       });
 
       if (!response.ok) {
@@ -46,6 +56,7 @@ export default function Home() {
 
       if (result.status === 'completed' && result.result) {
         setGeneratedDiagram(result.result.code);
+        setJobId(result.result.job_id || result.job_id || '');
         setConversionState('completed');
       } else if (result.status === 'failed') {
         console.error('Conversion failed:', result.error);
@@ -93,6 +104,7 @@ export default function Home() {
               <DiagramPreview
                 format={format}
                 diagramCode={generatedDiagram}
+                jobId={jobId}
                 onReset={handleReset}
               />
             )}
@@ -146,9 +158,7 @@ export default function Home() {
               <a href="#how-it-works" className="text-neutral-600 hover:text-secondary-700 font-medium transition-colors">
                 How It Works
               </a>
-              <button className="btn-secondary">
-                Sign In
-              </button>
+              <UserMenu />
             </div>
           </div>
         </div>

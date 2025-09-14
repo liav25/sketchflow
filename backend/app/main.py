@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -10,6 +10,9 @@ from datetime import datetime
 from app.core.config import settings
 from app.services.conversion import ConversionService
 from app.core.logging_config import configure_logging, get_logger
+from app.core.auth import get_current_user, get_current_user_optional
+from app.services.result_store import save_result, load_result, ConversionRecord
+from starlette.middleware.base import BaseHTTPMiddleware
 
 configure_logging()
 logger = get_logger("sketchflow.app")
@@ -27,18 +30,52 @@ if dev_mode:
         allow_headers=["*"],
     )
 else:
-    origins = (
-        settings.allowed_origins
-        if isinstance(settings.allowed_origins, list)
-        else [settings.allowed_origins]
-    )
+    # Production: parse ALLOWED_ORIGINS from env.
+    # Accepts either a JSON array or a comma-separated string.
+    raw = settings.allowed_origins
+    origins: list[str]
+    if isinstance(raw, list):
+        origins = raw
+    elif isinstance(raw, str):
+        val = raw.strip()
+        if val.startswith("["):
+            try:
+                import json
+                parsed = json.loads(val)
+                origins = parsed if isinstance(parsed, list) else [val]
+            except Exception:
+                origins = [p.strip() for p in val.split(",") if p.strip()]
+        else:
+            origins = [p.strip() for p in val.split(",") if p.strip()]
+    else:
+        origins = []
+
+    # If wildcard is used, disable credentials per CORS rules.
+    allow_credentials = True
+    if any(o == "*" for o in origins):
+        allow_credentials = False
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
+        allow_origins=origins or ["*"],
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# Security headers for production (fallback implementation without SecurityMiddleware)
+if not dev_mode:
+    class AddSecurityHeadersMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            response = await call_next(request)
+            response.headers.setdefault("X-Frame-Options", "DENY")
+            response.headers.setdefault("X-Content-Type-Options", "nosniff")
+            response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+            # HSTS for ~6 months
+            response.headers.setdefault("Strict-Transport-Security", "max-age=15552000")
+            return response
+
+    app.add_middleware(AddSecurityHeadersMiddleware)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -74,6 +111,12 @@ class ConversionResponse(BaseModel):
     error: str | None = None
 
 
+class CodeResponse(BaseModel):
+    job_id: str
+    format: str
+    code: str
+
+
 @app.get("/")
 async def root():
     return {"message": "SketchFlow API", "version": "1.0.0"}
@@ -90,6 +133,7 @@ async def convert_sketch(
     format: Literal["mermaid", "drawio"] = Form(...),
     notes: str = Form(""),
     mock: bool = Form(False),
+    current_user=Depends(get_current_user_optional),
 ):
     # Dev mode: skip file type/size validation to avoid friction
     file_content = await file.read()
@@ -142,7 +186,20 @@ async def convert_sketch(
             notes=notes,
             job_id=job_id
         )
-        
+        # Persist result for later retrieval
+        try:
+            record = ConversionRecord(
+                job_id=job_id,
+                format=format,
+                notes=notes,
+                code=result.get("code", ""),
+                owner_user_id=(current_user or {}).get("id") if current_user else None,
+                created_at=datetime.now().isoformat(),
+            )
+            save_result(record)
+        except Exception:
+            get_logger("sketchflow.result_store").exception("Failed to persist conversion result")
+
         return ConversionResponse(
             job_id=job_id,
             status="completed",
@@ -155,6 +212,18 @@ async def convert_sketch(
             status="failed",
             error=str(e)
         )
+
+
+@app.get("/api/conversions/{job_id}/code", response_model=CodeResponse)
+async def get_conversion_code(job_id: str, user=Depends(get_current_user)):
+    """Return diagram code for a conversion job. Authentication required.
+
+    This enforces the product rule: only registered users can copy code.
+    """
+    item = load_result(job_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return CodeResponse(job_id=job_id, format=item.get("format", "mermaid"), code=item.get("code", ""))
 
 
 if __name__ == "__main__":
