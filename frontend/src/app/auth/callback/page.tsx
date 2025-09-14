@@ -18,41 +18,44 @@ export default function AuthCallback() {
       console.log('[AuthCallback] Auth code present:', !!code);
       
       try {
-        // Try the newer method first
-        const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-        console.log('[AuthCallback] Code exchange result:', { 
-          hasSession: !!data.session, 
-          userId: data.session?.user?.id,
-          email: data.session?.user?.email,
-          error 
-        });
-        
-        if (error) {
-          console.error('[AuthCallback] Auth callback error:', error);
-          // If exchange failed, try getting session directly
-          const { data: sessionData } = await supabase.auth.getSession();
-          console.log('[AuthCallback] Direct session check:', {
-            hasSession: !!sessionData.session,
-            userId: sessionData.session?.user?.id,
-            email: sessionData.session?.user?.email
+        if (code) {
+          // PKCE/code flow
+          const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+          console.log('[AuthCallback] Code exchange result:', { 
+            hasSession: !!data.session, 
+            userId: data.session?.user?.id,
+            email: data.session?.user?.email,
+            error 
           });
+          if (error) {
+            console.error('[AuthCallback] Auth callback error:', error);
+          }
         } else {
-          console.log('[AuthCallback] Successfully exchanged code for session');
+          // Implicit flow (tokens in URL hash)
+          const hashParams = new URLSearchParams(window.location.hash.slice(1));
+          const access_token = hashParams.get('access_token');
+          const refresh_token = hashParams.get('refresh_token');
+          console.log('[AuthCallback] Implicit flow tokens found:', !!access_token);
+          if (access_token && refresh_token) {
+            const { data, error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+            console.log('[AuthCallback] setSession result:', {
+              hasSession: !!data.session,
+              userId: data.session?.user?.id,
+              email: data.session?.user?.email,
+              error,
+            });
+            if (error) console.error('[AuthCallback] setSession error:', error);
+          } else {
+            // As a fallback, allow supabase-js to detect session in URL if possible
+            const { data: s } = await supabase.auth.getSession();
+            console.log('[AuthCallback] getSession (no code/hash) result:', { hasSession: !!s.session });
+          }
         }
       } catch (e) {
-        console.error('[AuthCallback] Auth exchange error:', e);
-        
-        // Fallback: try to get current session
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          console.log('[AuthCallback] Fallback session check:', {
-            hasSession: !!sessionData.session,
-            userId: sessionData.session?.user?.id,
-            email: sessionData.session?.user?.email
-          });
-        } catch (fallbackError) {
-          console.error('[AuthCallback] Fallback session check failed:', fallbackError);
-        }
+        console.error('[AuthCallback] Auth processing error:', e);
       }
       
       const redirectTarget = sessionStorage.getItem('sf.redirect') || '/';
@@ -74,4 +77,3 @@ export default function AuthCallback() {
     </div>
   );
 }
-

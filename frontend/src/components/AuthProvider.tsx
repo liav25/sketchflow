@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
-          options: { redirectTo: url },
+          options: { redirectTo: url, queryParams: { prompt: 'select_account' } },
         });
         
         console.log('[AuthProvider] Google sign-in result:', { data, error });
@@ -111,4 +111,3 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
-

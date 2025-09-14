@@ -6,7 +6,6 @@ import SketchUpload from '@/components/SketchUpload';
 import ConversionForm from '@/components/ConversionForm';
 import DiagramPreview from '@/components/DiagramPreview';
 import { useAuth } from '@/components/AuthProvider';
-import { SignInButton, SignOutButton } from '@/components/SignInButton';
 import UserMenu from '@/components/UserMenu';
 
 export type ConversionState = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
