@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -9,6 +9,10 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.services.conversion import ConversionService
+from app.core.logging_config import configure_logging, get_logger
+
+configure_logging()
+logger = get_logger("sketchflow.app")
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 
@@ -35,6 +39,29 @@ else:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    import time
+    start = time.time()
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+
+    # Proceed to handler
+    try:
+        response = await call_next(request)
+        duration_ms = int((time.time() - start) * 1000)
+        response.headers["X-Request-ID"] = request_id
+        get_logger("sketchflow.request").info(
+            f"{request.method} {request.url.path} -> {response.status_code} in {duration_ms}ms",
+        )
+        return response
+    except Exception as e:
+        duration_ms = int((time.time() - start) * 1000)
+        get_logger("sketchflow.request").exception(
+            f"Unhandled error for {request.method} {request.url.path} after {duration_ms}ms: {e}"
+        )
+        raise
+
 
 # Initialize conversion service
 conversion_service = ConversionService()

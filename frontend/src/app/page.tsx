@@ -27,12 +27,13 @@ export default function Home() {
     setConversionState('processing');
     
     try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('format', format);
       formData.append('notes', notes);
 
-      const response = await fetch('http://localhost:8000/api/convert', {
+      const response = await fetch(`${apiBase}/api/convert`, {
         method: 'POST',
         body: formData,
       });

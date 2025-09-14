@@ -5,10 +5,12 @@ import asyncio
 
 from app.services.graph_workflow import SketchConversionGraph
 from app.core.config import settings
+from app.core.logging_config import get_logger
 
 
 class ConversionService:
     def __init__(self):
+        self.logger = get_logger("sketchflow.conversion")
         # Configure LangSmith tracing if available
         import os
         if os.getenv("LANGSMITH_API_KEY") and not os.getenv("LANGCHAIN_TRACING_V2"):
@@ -20,7 +22,7 @@ class ConversionService:
     
     async def _vision_analysis_agent(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Agent 1: Analyze the sketch image and extract structure"""
-        print(f"Vision Agent: Analyzing image for format {state['format']}")
+        self.logger.debug(f"Vision analysis (mock) start format={state['format']}")
         
         # Mock analysis - just return format and notes
         state["analysis"] = {
@@ -36,7 +38,7 @@ class ConversionService:
         format_type = state["analysis"]["format"]
         notes = state["analysis"]["notes"]
         
-        print(f"Generation Agent: Creating {format_type} diagram")
+        self.logger.debug(f"Generation start format={format_type}")
         
         if format_type == "mermaid":
             # Simple Mermaid flowchart
@@ -74,7 +76,7 @@ class ConversionService:
     
     async def _validation_agent(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Agent 3: Validate and correct the generated diagram"""
-        print("Validation Agent: Checking diagram validity")
+        self.logger.debug("Validation start")
         
         # Simple validation - just pass through for now
         state["validated_code"] = state["generated_code"]
@@ -127,7 +129,7 @@ class ConversionService:
                 "agents_used": ["mock"],
             }
 
-        print(f"Starting conversion pipeline for job {job_id}")
+        self.logger.info(f"Conversion pipeline start job_id={job_id} format={format}")
 
         # Initial state for graph
         state: Dict[str, Any] = {
@@ -141,7 +143,7 @@ class ConversionService:
         # Execute graph
         final_state = await self.graph.run(state)
 
-        print(f"Conversion pipeline completed for job {job_id}")
+        self.logger.info(f"Conversion pipeline completed job_id={job_id}")
 
         # Return result
         return {

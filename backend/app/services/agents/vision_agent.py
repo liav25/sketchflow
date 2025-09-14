@@ -16,6 +16,7 @@ from langsmith import traceable
 
 from app.core.state_types import SketchConversionState
 from app.prompts.prompt_templates import PromptTemplates
+from app.core.logging_config import get_logger
 
 
 class VisionAnalysisAgent:
@@ -29,6 +30,7 @@ class VisionAnalysisAgent:
         self.openai_client = None
         self.anthropic_client = None
         self._initialize_llm_clients()
+        self.logger = get_logger("sketchflow.vision")
     
     def _initialize_llm_clients(self):
         """Initialize vision-capable LLM clients."""
@@ -101,7 +103,7 @@ class VisionAnalysisAgent:
         Returns:
             Updated state with vision analysis results
         """
-        print(f"Vision Agent: Analyzing sketch for format {state['format']}")
+        self.logger.info(f"vision_start job_id={state.get('job_id','?')} format={state['format']}")
         
         # Get the vision analysis prompt
         prompt = self.prompt_templates.get_vision_analysis_prompt(
@@ -164,11 +166,11 @@ class VisionAnalysisAgent:
                 "generation_instructions": analysis_results["generation_instructions"]
             })
             
-            print(f"Vision Agent: Analysis completed for job {state['job_id']}")
+            self.logger.info(f"vision_complete job_id={state['job_id']}")
             return state
             
         except Exception as e:
-            print(f"Vision Agent Error: {str(e)}")
+            self.logger.exception(f"vision_error job_id={state.get('job_id','?')} error={e}")
             # Return state with error information
             state.update({
                 "sketch_description": f"Error during vision analysis: {str(e)}",

@@ -21,6 +21,7 @@ from app.services.agents.vision_agent import VisionAnalysisAgent
 from app.services.agents.mermaid_generation_agent import MermaidGenerationAgent
 from app.services.agents.drawio_generation_agent import DrawioGenerationAgent
 from app.services.agents.validation_agent import ValidationAgent
+from app.core.logging_config import get_logger
 
 
 class SketchConversionGraph:
@@ -35,6 +36,7 @@ class SketchConversionGraph:
         self.validation_agent = ValidationAgent()
         self.max_retries = max_retries
         self.graph = self._build_graph()
+        self.logger = get_logger("sketchflow.graph")
 
     def _build_graph(self):
         workflow = StateGraph(SketchConversionState)
@@ -78,23 +80,30 @@ class SketchConversionGraph:
             retry = int(state.get("retry_count", 0) or 0)
             passed = bool(state.get("validation_passed", False))
             job_id = state.get("job_id", "unknown")
-            
-            print(f"Validation Router [Job {job_id}]: retry={retry}, passed={passed}, max_retries={self.max_retries}")
+            self.logger.debug(
+                f"validation_router job_id={job_id} retry={retry} passed={passed} max={self.max_retries}"
+            )
 
             if passed:
-                print(f"Validation Router [Job {job_id}]: Validation PASSED - routing to END")
                 return END
 
             # If needs correction and we have corrections, feed them back
             corrections = state.get("corrections", "").strip()
             if not passed and retry < self.max_retries:
                 next_node = format_router(state)
-                print(f"Validation Router [Job {job_id}]: Retry {retry+1}/{self.max_retries} - routing to {next_node}")
-                print(f"Validation Router [Job {job_id}]: Corrections: {corrections[:100]}...")
+                self.logger.info(
+                    f"validation_retry job_id={job_id} next={next_node} step={retry+1}/{self.max_retries}"
+                )
+                if corrections:
+                    self.logger.debug(
+                        f"corrections_preview job_id={job_id} text={corrections[:100]}"
+                    )
                 return next_node
 
             # Exhausted retries → end with current best
-            print(f"Validation Router [Job {job_id}]: Max retries exceeded - routing to END with current diagram")
+            self.logger.warning(
+                f"validation_max_retries job_id={job_id} retries={retry}"
+            )
             # Ensure final state is set for exhausted retries
             state["final_code"] = state.get("diagram_code", "")
             state["validation_passed"] = True

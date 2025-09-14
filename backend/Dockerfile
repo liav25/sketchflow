@@ -20,5 +20,8 @@ RUN mkdir -p storage/uploads storage/previews storage/temp
 # Expose port
 EXPOSE 8000
 
+# Ensure logs are unbuffered for real-time streaming
+ENV PYTHONUNBUFFERED=1
+
 # Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
