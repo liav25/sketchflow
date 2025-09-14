@@ -9,20 +9,9 @@
   --muted: #6b7280;      /* muted text */
   --accent: #1687A7;     /* primary */
   --accent-dark: #276678; /* secondary */
+  color-scheme: light; /* prevent auto darkening on iOS */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #243b53;
-    --foreground: #faf0ca;
-    --surface: #334e68;
-    --border: #486581;
-    --muted: #9fb3c8;
-    --accent: #f4d35e;
-    --accent-warm: #ee964b;
-    --accent-vibrant: #f95738;
-  }
-}
 
 /* Base Styles */
 * {

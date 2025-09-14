@@ -165,7 +165,7 @@ export default function Home() {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-display md:text-6xl lg:text-7xl font-bold text-secondary-800 mb-6 animate-slide-up text-balance">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-secondary-800 mb-6 animate-slide-up text-balance">
               Transform Hand-Drawn
               <span className="text-[#ef7722]"> Sketches </span>
               into Professional Diagrams
@@ -180,18 +180,18 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 animate-scale-in">
               <button 
                 onClick={handleGetStarted}
-                className="btn-primary text-lg px-8 py-4 group"
+                className="btn-primary text-lg px-6 py-3 sm:px-8 sm:py-4 group"
               >
                 Get Started Free
                 <ArrowRightIcon className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </button>
-              <button className="btn-secondary text-lg px-8 py-4">
+              <button className="btn-secondary text-lg px-6 py-3 sm:px-8 sm:py-4">
                 View Examples
               </button>
             </div>
 
             {/* Trust Indicators */}
-            <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto animate-fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-2xl mx-auto animate-fade-in">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary-600 mb-1">30s</div>
                 <div className="text-sm text-neutral-600">Average Conversion Time</div>

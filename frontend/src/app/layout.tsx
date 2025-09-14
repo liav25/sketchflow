@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,11 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "SketchFlow - AI-Powered Sketch to Diagram Converter",
   description: "Transform your hand-drawn sketches into professional digital diagrams (Mermaid & Draw.io) with AI",
+};
+
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
+  colorScheme: 'light',
 };
 
 export default function RootLayout({
