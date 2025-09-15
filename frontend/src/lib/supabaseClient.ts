@@ -1,8 +1,8 @@
 'use client';
 
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
-export const supabase = createClient(
+export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
@@ -11,15 +11,12 @@ export const supabase = createClient(
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
-    realtime: {
-      // Disable realtime to prevent connection issues in production
-      enabled: false,
-    },
+    // No `realtime.enabled` option in supabase-js v2; omit to avoid TS error
     global: {
       headers: {
-        'X-Client-Info': 'sketchflow-web'
-      }
-    }
+        'X-Client-Info': 'sketchflow-web',
+      },
+    },
   }
 );
 
