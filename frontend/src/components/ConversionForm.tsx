@@ -7,7 +7,6 @@ import {
   PlayIcon, 
   DocumentTextIcon,
   Square3Stack3DIcon,
-  SparklesIcon,
   EyeIcon,
   CpuChipIcon,
   CheckCircleIcon,

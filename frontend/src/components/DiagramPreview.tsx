@@ -19,14 +19,20 @@ import {
 import type { DiagramFormat } from '@/app/page';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/components/AuthProvider';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/utils/supabase/client';
 
 // Error boundary for Mermaid rendering
-class MermaidErrorBoundary extends Component<
-  { children: React.ReactNode; fallback: React.ComponentType },
-  { hasError: boolean }
-> {
-  constructor(props: any) {
+interface MermaidErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback: React.ComponentType;
+}
+
+interface MermaidErrorBoundaryState {
+  hasError: boolean;
+}
+
+class MermaidErrorBoundary extends Component<MermaidErrorBoundaryProps, MermaidErrorBoundaryState> {
+  constructor(props: MermaidErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -35,7 +41,7 @@ class MermaidErrorBoundary extends Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Mermaid rendering error:', error, errorInfo);
   }
 
@@ -94,6 +100,7 @@ export default function DiagramPreview({
   const [shared, setShared] = useState(false);
   const [activeView, setActiveView] = useState<'preview' | 'code'>('preview');
   const { user, signInWithGoogle } = useAuth();
+  const supabase = createClient();
 
   // Celebration effect on mount
   useEffect(() => {

@@ -35,10 +35,11 @@ const csp = [
 ].join('; ')
 
 const nextConfig: NextConfig = {
+  // External packages for server components
+  serverExternalPackages: ['mermaid'],
+  
   // Experimental features to fix streaming issues
-  experimental: {
-    serverComponentsExternalPackages: ['mermaid'],
-  },
+  experimental: {},
   
   // Disable React strict mode in production to prevent double-hydration issues
   reactStrictMode: process.env.NODE_ENV !== 'production',
