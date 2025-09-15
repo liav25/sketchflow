@@ -40,14 +40,27 @@ export default function Home() {
       formData.append('notes', notes);
 
       const headers: Record<string, string> = {};
-      const token = await getAccessToken();
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      // Wrap token retrieval in try-catch to prevent streaming issues
+      try {
+        const token = await getAccessToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      } catch (tokenError) {
+        console.warn('Failed to get access token:', tokenError);
+        // Continue without token for anonymous access
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
       const response = await fetch(`${apiBase}/api/convert`, {
         method: 'POST',
         body: formData,
         headers,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

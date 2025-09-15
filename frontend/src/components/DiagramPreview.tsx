@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Component } from 'react';
 import { 
   ArrowLeftIcon,
   ClipboardDocumentIcon,
@@ -21,8 +21,60 @@ import dynamic from 'next/dynamic';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/lib/supabaseClient';
 
-// Dynamically load the Mermaid preview to avoid SSR issues
-const MermaidPreview = dynamic(() => import('./MermaidPreview'), { ssr: false });
+// Error boundary for Mermaid rendering
+class MermaidErrorBoundary extends Component<
+  { children: React.ReactNode; fallback: React.ComponentType },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Mermaid rendering error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      const Fallback = this.props.fallback;
+      return <Fallback />;
+    }
+    return this.props.children;
+  }
+}
+
+// Fallback component for Mermaid errors
+const MermaidFallback = () => (
+  <div className="text-center space-y-4 p-8">
+    <div className="w-16 h-16 bg-warning-100 dark:bg-warning-900/30 rounded-xl flex items-center justify-center mx-auto">
+      <CodeBracketIcon className="w-8 h-8 text-warning-600 dark:text-warning-400" />
+    </div>
+    <div>
+      <h4 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">
+        Diagram Preview Unavailable
+      </h4>
+      <p className="text-neutral-600 dark:text-neutral-300">
+        The diagram code is ready, but preview rendering failed.<br />
+        You can still copy and use the code below.
+      </p>
+    </div>
+  </div>
+);
+
+// Dynamically load the Mermaid preview to avoid SSR issues with proper error handling
+const MermaidPreview = dynamic(() => import('./MermaidPreview'), { 
+  ssr: false,
+  loading: () => (
+    <div className="text-center p-8">
+      <div className="animate-pulse text-neutral-600">Loading diagram preview...</div>
+    </div>
+  ),
+});
 
 interface DiagramPreviewProps {
   format: DiagramFormat;
@@ -230,7 +282,9 @@ export default function DiagramPreview({
                 <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 min-h-[400px] flex items-center justify-center shadow-elevation-2">
                   {format === 'mermaid' ? (
                     <div className="w-full max-h-[600px] overflow-auto">
-                      <MermaidPreview code={diagramCode} />
+                      <MermaidErrorBoundary fallback={MermaidFallback}>
+                        <MermaidPreview code={diagramCode} />
+                      </MermaidErrorBoundary>
                     </div>
                   ) : (
                     <div className="text-center space-y-6">

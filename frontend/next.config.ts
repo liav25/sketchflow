@@ -35,6 +35,14 @@ const csp = [
 ].join('; ')
 
 const nextConfig: NextConfig = {
+  // Experimental features to fix streaming issues
+  experimental: {
+    serverComponentsExternalPackages: ['mermaid'],
+  },
+  
+  // Disable React strict mode in production to prevent double-hydration issues
+  reactStrictMode: process.env.NODE_ENV !== 'production',
+  
   async headers() {
     // Disable CSP in development to avoid Turbopack issues
     if (process.env.NODE_ENV === 'development') {

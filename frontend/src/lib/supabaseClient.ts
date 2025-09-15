@@ -11,6 +11,15 @@ export const supabase = createClient(
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
+    realtime: {
+      // Disable realtime to prevent connection issues in production
+      enabled: false,
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'sketchflow-web'
+      }
+    }
   }
 );
 
