@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Log configuration on startup
   console.log('[AuthProvider] Configuration:', {
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('[AuthProvider] Cleaning up auth subscription');
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase.auth]);
 
   const value = useMemo(
     () => ({
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return data.session?.access_token ?? null;
       },
     }),
-    [user, loading]
+    [user, loading, supabase.auth]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

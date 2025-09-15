@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
     await supabase.auth.getUser()
 
     return response
-  } catch (e) {
+  } catch {
     // If you are here, a Supabase client could not be created!
     // This is likely because you have not set up environment variables.
     // Check out http://localhost:3000 for Next Steps.

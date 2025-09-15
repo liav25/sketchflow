@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
 export default function AuthCallback() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     const run = async () => {
@@ -70,7 +70,7 @@ export default function AuthCallback() {
       }, 500);
     };
     run();
-  }, [router]);
+  }, [router, supabase.auth]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
