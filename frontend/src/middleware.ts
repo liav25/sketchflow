@@ -1,4 +1,4 @@
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
@@ -8,13 +8,15 @@ export async function middleware(request: NextRequest) {
 
     // Refresh session if expired - required for Server Components
     await supabase.auth.getUser()
-
     return response
-  } catch {
-    // If you are here, a Supabase client could not be created!
-    // This is likely because you have not set up environment variables.
-    // Check out http://localhost:3000 for Next Steps.
-    return Response.redirect(new URL('/', request.url))
+  } catch (err) {
+    // Gracefully proceed without auth if configuration is missing
+    console.warn('[middleware] Auth middleware failed, continuing without auth:', err)
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    })
   }
 }
 

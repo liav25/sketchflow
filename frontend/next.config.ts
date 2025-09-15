@@ -24,6 +24,8 @@ const csp = [
   "default-src 'self'",
   "base-uri 'self'",
   "img-src 'self' data: blob:",
+  // Allow Next.js runtime and hydration scripts
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data:",
   // Mermaid and our UI may use inline styles for rendering
   "style-src 'self' 'unsafe-inline'",
   // Allow calling our API and Supabase (HTTPS + WSS for Realtime)
@@ -31,6 +33,8 @@ const csp = [
   // Allow Draw.io embed in an iframe
   "frame-src https://embed.diagrams.net https://app.diagrams.net",
   "font-src 'self' data:",
+  // Allow web workers if needed
+  "worker-src 'self' blob:",
   "frame-ancestors 'none'",
 ].join('; ')
 
