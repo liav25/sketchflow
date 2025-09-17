@@ -130,7 +130,7 @@ async def health_check():
 @app.post("/api/convert", response_model=ConversionResponse)
 async def convert_sketch(
     file: UploadFile = File(...),
-    format: Literal["mermaid", "drawio"] = Form(...),
+    format: Literal["mermaid", "drawio", "uml"] = Form(...),
     notes: str = Form(""),
     mock: bool = Form(False),
     current_user=Depends(get_current_user_optional),

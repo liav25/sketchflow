@@ -18,7 +18,7 @@ class SketchConversionState(TypedDict, total=False):
 
     # Required inputs
     file_path: str
-    target_format: str  # "mermaid" or "drawio"
+    target_format: str  # "mermaid", "drawio", or "uml"
     user_notes: str
     job_id: str
 
@@ -42,6 +42,8 @@ class SketchConversionState(TypedDict, total=False):
 
     # Final output
     final_code: str
+
+    # (Deprecated) Lucidchart publish outputs were removed
 
     # Control/metadata
     attempt_count: int  # 0-based number of generation attempts performed

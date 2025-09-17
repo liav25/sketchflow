@@ -3,7 +3,7 @@ LangGraph workflow for the current 3-agent SketchFlow pipeline.
 
 Architecture:
 - describer_node: Vision describer creates structured diagram_spec + narrative
-- diagram_generation_node: Format-specific generation (Mermaid/Draw.io)
+- diagram_generation_node: Format-specific generation (Mermaid/Draw.io/UML)
 - syntax_validation_node: Syntax validator ensures compile-ability (with retry guidance)
 
 Linear flow with strict roles per agent.
@@ -22,6 +22,8 @@ from app.services.agents.mermaid_generation_agent import MermaidGenerationAgent
 from app.services.agents.drawio_generation_agent import DrawioGenerationAgent
 from app.services.agents.mermaid_syntax_validator_agent import MermaidSyntaxValidatorAgent
 from app.services.agents.drawio_syntax_validator_agent import DrawioSyntaxValidatorAgent
+from app.services.agents.uml_syntax_validator_agent import UMLSyntaxValidatorAgent
+from app.services.agents.uml_generation_agent import UMLGenerationAgent
 import os
 from app.core.logging_config import get_logger
 
@@ -37,8 +39,10 @@ class SketchConversionGraph:
         self.describer_agent = DescriberAgent()
         self.mermaid_agent = MermaidGenerationAgent()
         self.drawio_agent = DrawioGenerationAgent()
+        self.uml_agent = UMLGenerationAgent()
         self.mermaid_validator = MermaidSyntaxValidatorAgent()
         self.drawio_validator = DrawioSyntaxValidatorAgent()
+        self.uml_validator = UMLSyntaxValidatorAgent()
         # Back-compat: read GENERATION_MAX_RETRIES but treat value as max attempts
         # (i.e., number of generator passes including the first attempt).
         self.max_attempts = int(os.getenv("GENERATION_MAX_RETRIES", "2"))
@@ -69,18 +73,21 @@ class SketchConversionGraph:
             try:
                 job_id = state.get("job_id", "unknown")
                 self.logger.info(
-                    f"decide_next job_id={job_id} passed={passed} skipped={skipped} attempt_count={attempt_count} max_attempts={self.max_attempts} -> {'END' if should_end else 'RETRY'}"
+                    f"decide_next job_id={job_id} passed={passed} skipped={skipped} attempt_count={attempt_count} max_attempts={self.max_attempts}"
                 )
             except Exception:
                 pass
-            return should_end
+            if should_end:
+                return "end"
+            else:
+                return "retry"
 
         workflow.add_conditional_edges(
             "syntax_validation_node",
             _decide_next,
             {
-                True: END,
-                False: "diagram_generation_node",
+                "end": END,
+                "retry": "diagram_generation_node",
             },
         )
 
@@ -113,8 +120,11 @@ class SketchConversionGraph:
         state["generation_instructions"] = state.get("user_notes", "")
 
         target = (state.get("target_format") or "mermaid").lower().strip()
-
-        if target == "drawio":
+        if target == "uml":
+            processing_path.append("diagram_generation_uml")
+            state["processing_path"] = processing_path
+            new_state = await self.uml_agent.generate_uml_drawio(state)
+        elif target == "drawio":
             processing_path.append("diagram_generation_drawio")
             state["processing_path"] = processing_path
             new_state = await self.drawio_agent.generate_drawio_diagram(state)  # adds diagram_code
@@ -130,10 +140,15 @@ class SketchConversionGraph:
         """Route to the appropriate validator based on target_format."""
         target = (state.get("target_format") or "mermaid").lower().strip()
         processing_path = state.get("processing_path", []) or []
+        # Draw.io validates as Draw.io XML; UML validates via UML validator
         if target == "drawio":
             processing_path.append("syntax_validation_drawio")
             state["processing_path"] = processing_path
             return await self.drawio_validator.validate(state)
+        elif target == "uml":
+            processing_path.append("syntax_validation_uml")
+            state["processing_path"] = processing_path
+            return await self.uml_validator.validate(state)
         else:
             processing_path.append("syntax_validation_mermaid")
             state["processing_path"] = processing_path

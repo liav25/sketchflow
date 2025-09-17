@@ -2,7 +2,7 @@ export type ExampleItem = {
   slug: string;
   title: string;
   description?: string;
-  format?: 'mermaid' | 'drawio';
+  format?: 'mermaid' | 'drawio' | 'uml';
   beforeSrc: string;
   afterSrc: string;
 };

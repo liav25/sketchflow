@@ -49,6 +49,10 @@ const frameSrc = [
   'https://embed.diagrams.net',
   'https://app.diagrams.net',
   'https://viewer.diagrams.net',
+  // Lucidchart embed
+  'https://lucid.app',
+  'https://www.lucidchart.com',
+  'https://app.lucidchart.com',
   // AdSense iframes
   ...(adsEnabled ? [
     'https://*.googlesyndication.com',

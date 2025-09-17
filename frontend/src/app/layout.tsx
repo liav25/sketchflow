@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "SketchFlow - AI-Powered Sketch to Diagram Converter",
-  description: "Transform your hand-drawn sketches into professional digital diagrams (Mermaid & Draw.io) with AI",
+  description: "Transform your hand-drawn sketches into professional digital diagrams (Mermaid, Draw.io & UML/PlantUML) with AI",
 };
 
 export const viewport: Viewport = {

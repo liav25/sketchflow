@@ -28,16 +28,16 @@ class ConversionService:
             if settings.mock_latency_ms and settings.mock_latency_ms > 0:
                 await asyncio.sleep(settings.mock_latency_ms / 1000.0)
 
-            code = (
-                f"""flowchart TD
+            if format == "mermaid":
+                code = f"""flowchart TD
     A[Start] --> B[{notes if notes else 'Process'}]
     B --> C[Decision]
     C -->|Yes| D[Success]
     C -->|No| E[Retry]
     E --> B
     D --> F[End]"""
-                if format == "mermaid"
-                else f"""<mxfile host="app.diagrams.net">
+            elif format == "drawio":
+                code = f"""<mxfile host=\"app.diagrams.net\">
   <diagram name=\"Page-1\">
     <mxGraphModel dx=\"800\" dy=\"600\" grid=\"1\" gridSize=\"10\" guides=\"1\">
       <root>
@@ -56,7 +56,19 @@ class ConversionService:
     </mxGraphModel>
   </diagram>
 </mxfile>"""
-            )
+            else:
+                code = f"""@startuml
+title Generated UML
+
+actor User as U
+participant System as S
+
+U -> S: {notes or 'Request'}
+activate S
+S --> U: Response
+deactivate S
+
+@enduml"""
 
             return {
                 "format": format,

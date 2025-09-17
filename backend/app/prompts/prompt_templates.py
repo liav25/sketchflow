@@ -153,6 +153,54 @@ Return only the Draw.io XML starting with <mxfile>."""
         spec_str = json.dumps(diagram_spec, ensure_ascii=False)
         return self.format_prompt(template, spec=spec_str)
 
+    # ===== UML via PlantUML PROMPTS =====
+
+    def get_uml_plantuml_generation_prompt(self, description: str, instructions: str, uml_kind: str) -> str:
+        """Prompt to generate UML diagrams as PlantUML code-only output."""
+        template = """You generate clean, valid PlantUML diagrams.
+
+SKETCH DESCRIPTION:
+$description
+
+ADDITIONAL INSTRUCTIONS (optional):
+$instructions
+
+UML DIAGRAM KIND (suggested): $uml_kind
+
+REQUIREMENTS:
+- Output PlantUML code only, starting with @startuml and ending with @enduml
+- Do not include markdown fences or any commentary
+- Use canonical PlantUML syntax for the diagram kind (sequence, class, usecase, activity, state, component)
+- Prefer concise, readable labels and simple structure
+- For sequence: define actors/participants, messages with arrows, activations, and fragments (alt/opt/loop) when appropriate
+- For class: use class declarations, fields, methods, relationships (inheritance, composition)
+- For use case: actors, use cases (ellipses), and associations
+- For activity/state: states/activities and transitions with guards when provided
+- For component: components, interfaces, dependencies
+
+Return only the PlantUML code between @startuml and @enduml (inclusive)."""
+        return self.format_prompt(template, description=description, instructions=instructions, uml_kind=uml_kind)
+
+    def get_uml_plantuml_generation_prompt_from_spec(self, diagram_spec: dict[str, object], uml_kind: str) -> str:
+        """Prompt to translate a structured spec into PlantUML code (code-only)."""
+        template = """You translate a structured diagram specification into valid PlantUML code.
+
+SPEC (JSON):
+$spec
+
+UML DIAGRAM KIND (suggested): $uml_kind
+
+REQUIREMENTS:
+- Output PlantUML code only, starting with @startuml and ending with @enduml
+- Do not include markdown fences or commentary
+- Map elements and relations to the appropriate PlantUML constructs for the diagram kind
+- Keep identifiers readable and labels concise; preserve provided orientation/grouping as comments or lifeline order when applicable
+
+Return only the PlantUML code between @startuml and @enduml (inclusive)."""
+        import json
+        spec_str = json.dumps(diagram_spec, ensure_ascii=False)
+        return self.format_prompt(template, spec=spec_str, uml_kind=uml_kind)
+
     def _get_describer_template(self) -> str:
         return """You are a precise vision describer for hand-drawn or sketched diagrams.
 

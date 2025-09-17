@@ -91,11 +91,14 @@ const DrawioPreview = dynamic(() => import('./DrawioPreview'), {
   ),
 });
 
+// No dedicated dynamic preview for UML (PlantUML); show code-only
+
 interface DiagramPreviewProps {
   format: DiagramFormat;
   diagramCode: string;
   jobId?: string;
   onReset: () => void;
+  embedUrl?: string;
 }
 
 export default function DiagramPreview({
@@ -103,6 +106,7 @@ export default function DiagramPreview({
   diagramCode,
   jobId,
   onReset,
+  embedUrl,
 }: DiagramPreviewProps) {
   const [copied, setCopied] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
@@ -189,7 +193,7 @@ export default function DiagramPreview({
     const element = document.createElement('a');
     const file = new Blob([code], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `sketchflow-diagram.${format === 'mermaid' ? 'mmd' : 'xml'}`;
+    element.download = `sketchflow-diagram.${format === 'mermaid' ? 'mmd' : format === 'drawio' ? 'xml' : 'puml'}`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -209,7 +213,7 @@ export default function DiagramPreview({
         await navigator.share({
           title: 'SketchFlow - AI Generated Diagram',
           text: `Check out this ${format} diagram created with SketchFlow AI!`,
-          files: [new File([diagramCode], `sketchflow-diagram.${format === 'mermaid' ? 'mmd' : 'xml'}`, {
+          files: [new File([diagramCode], `sketchflow-diagram.${format === 'mermaid' ? 'mmd' : format === 'drawio' ? 'xml' : 'puml'}`, {
             type: 'text/plain'
           })]
         });
@@ -243,7 +247,7 @@ export default function DiagramPreview({
             Conversion Complete!
           </h1>
           <p className="text-xl text-neutral-600 dark:text-neutral-300">
-            Your {format === 'mermaid' ? 'Mermaid' : 'Draw.io'} diagram is ready
+            Your {format === 'mermaid' ? 'Mermaid' : format === 'drawio' ? 'Draw.io' : 'UML'} diagram is ready
           </p>
         </div>
       </div>
@@ -309,10 +313,10 @@ export default function DiagramPreview({
               <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl p-8 border border-neutral-200 dark:border-neutral-700">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-2xl font-bold text-neutral-900 dark:text-white">
-                    {format === 'mermaid' ? 'Mermaid' : 'Draw.io'} Diagram
+                    {format === 'mermaid' ? 'Mermaid' : format === 'drawio' ? 'Draw.io' : 'UML'} Diagram
                   </h3>
                   <span className="px-3 py-1 bg-info-100 dark:bg-info-900/30 text-info-800 dark:text-info-200 rounded-full text-sm font-mono">
-                    .{format === 'mermaid' ? 'mmd' : 'xml'}
+                    .{format === 'mermaid' ? 'mmd' : format === 'drawio' ? 'xml' : 'puml'}
                   </span>
                 </div>
                 
@@ -323,9 +327,15 @@ export default function DiagramPreview({
                         <MermaidPreview code={diagramCode} />
                       </MermaidErrorBoundary>
                     </div>
-                  ) : (
+                  ) : format === 'drawio' ? (
                     <div className="w-full">
                       <DrawioPreview xml={diagramCode} />
+                    </div>
+                  ) : (
+                    <div className="w-full">
+                      <pre className="whitespace-pre-wrap text-sm leading-6">
+{diagramCode}
+                      </pre>
                     </div>
                   )}
                 </div>
@@ -476,7 +486,7 @@ export default function DiagramPreview({
                 <SparklesIcon className="w-5 h-5 text-info-600 dark:text-info-400" />
               </div>
               <h4 className="text-lg font-bold text-info-900 dark:text-info-100">
-                How to use your {format === 'mermaid' ? 'Mermaid' : 'Draw.io'} diagram
+                How to use your {format === 'mermaid' ? 'Mermaid' : format === 'drawio' ? 'Draw.io' : 'UML'} diagram
               </h4>
             </div>
             
@@ -504,7 +514,7 @@ export default function DiagramPreview({
                     </p>
                   </div>
                 </>
-              ) : (
+              ) : format === 'drawio' ? (
                 <>
                   <div className="space-y-2">
                     <p className="flex items-start gap-2">
@@ -524,6 +534,29 @@ export default function DiagramPreview({
                     <p className="flex items-start gap-2">
                       <CheckCircleIconSolid className="w-4 h-4 mt-0.5 text-success-600" />
                       Export to PNG, SVG, PDF, and more formats
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <p className="flex items-start gap-2">
+                      <CheckCircleIconSolid className="w-4 h-4 mt-0.5 text-success-600" />
+                      Use any PlantUML renderer (local or online) to preview
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <CheckCircleIconSolid className="w-4 h-4 mt-0.5 text-success-600" />
+                      Supported by many tools (IntelliJ, VS Code, Confluence plugins)
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="flex items-start gap-2">
+                      <CheckCircleIconSolid className="w-4 h-4 mt-0.5 text-success-600" />
+                      Save as .puml and version control alongside code
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <CheckCircleIconSolid className="w-4 h-4 mt-0.5 text-success-600" />
+                      Convert to images via PlantUML CLI/server when needed
                     </p>
                   </div>
                 </>

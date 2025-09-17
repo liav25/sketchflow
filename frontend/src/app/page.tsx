@@ -11,7 +11,7 @@ import ExamplesSwitcher from '@/components/ExamplesSwitcher';
 import AdSlot from '@/components/ads/AdSlot';
 
 export type ConversionState = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
-export type DiagramFormat = 'mermaid' | 'drawio';
+export type DiagramFormat = 'mermaid' | 'drawio' | 'uml';
 
 export default function Home() {
   const [conversionState, setConversionState] = useState<ConversionState>('idle');
@@ -20,6 +20,7 @@ export default function Home() {
   const [format, setFormat] = useState<DiagramFormat>('mermaid');
   const [generatedDiagram, setGeneratedDiagram] = useState<string>('');
   const [jobId, setJobId] = useState<string>('');
+  const [embedUrl, setEmbedUrl] = useState<string>('');
   const { user, getAccessToken } = useAuth();
 
   console.log('[HomePage] Page loaded, user state:', { hasUser: !!user });
@@ -109,6 +110,7 @@ export default function Home() {
 
       if (result.status === 'completed' && result.result) {
         setGeneratedDiagram(result.result.code);
+        setEmbedUrl('');
         setJobId(result.result.job_id || result.job_id || '');
         setConversionState('completed');
       } else if (result.status === 'failed') {
@@ -126,6 +128,7 @@ export default function Home() {
     setSelectedFile(null);
     setNotes('');
     setGeneratedDiagram('');
+    setEmbedUrl('');
   };
 
   const handleGetStarted = () => {
@@ -166,6 +169,7 @@ export default function Home() {
                 diagramCode={generatedDiagram}
                 jobId={jobId}
                 onReset={handleReset}
+                embedUrl={embedUrl}
               />
             )}
 
@@ -241,7 +245,7 @@ export default function Home() {
 
             {/* Subtitle */}
             <p className="text-lg md:text-xl text-neutral-700 mb-8 max-w-3xl mx-auto leading-relaxed animate-slide-up text-balance">
-              Upload a photo of your sketch and watch our AI convert it into clean, professional Mermaid or Draw.io diagrams in seconds. No design skills required.
+              Upload a photo of your sketch and watch our AI convert it into clean, professional Mermaid, Draw.io XML, or UML (PlantUML) diagrams in seconds. No design skills required.
             </p>
 
             {/* CTA Buttons */}
@@ -331,7 +335,7 @@ export default function Home() {
                 <SparklesIcon className="w-6 h-6 text-primary-600" />
               </div>
               <h3 className="text-xl font-bold text-secondary-800 mb-2">Multiple Formats</h3>
-              <p className="text-neutral-700">Export as Mermaid or Draw.io format, ready to use in your favorite tools.</p>
+              <p className="text-neutral-700">Export as Mermaid, Draw.io XML, or UML (PlantUML), then preview or edit in your favorite tools.</p>
             </div>
           </div>
         </div>

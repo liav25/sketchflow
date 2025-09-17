@@ -315,6 +315,45 @@ export default function ConversionForm({
                       </div>
                     </div>
                   </button>
+
+                  {/* UML (PlantUML) Option */}
+                  <button
+                    type="button"
+                    onClick={() => onFormatChange('uml')}
+                    disabled={isProcessing}
+                    className={`p-6 rounded-2xl border-2 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed group ${
+                      format === 'uml'
+                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-elevation-4'
+                        : 'border-neutral-200 dark:border-neutral-600 hover:border-orange-300 dark:hover:border-orange-500 hover:shadow-elevation-2'
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
+                        format === 'uml' 
+                          ? 'bg-orange-100 dark:bg-orange-900/50' 
+                          : 'bg-neutral-100 dark:bg-neutral-700 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30'
+                      }`}>
+                        <DocumentTextIcon className={`h-7 w-7 ${
+                          format === 'uml' 
+                            ? 'text-orange-600 dark:text-orange-400' 
+                            : 'text-neutral-500 dark:text-neutral-400 group-hover:text-orange-600 dark:group-hover:text-orange-400'
+                        }`} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="text-lg font-bold text-neutral-900 dark:text-white">UML (PlantUML)</h4>
+                          {format === 'uml' && (
+                            <CheckCircleIconSolid className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                          )}
+                        </div>
+                        <p className="text-neutral-600 dark:text-neutral-300 mb-2">Generate UML (class, sequence, use case)</p>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded-md text-xs font-medium">Text-based UML</span>
+                          <span className="px-2 py-1 bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 rounded-md text-xs font-medium">PlantUML syntax</span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
 
@@ -332,7 +371,9 @@ export default function ConversionForm({
                 ) : (
                   <div className="flex items-center justify-center gap-3 group">
                     <SparklesIconSolid className="h-6 w-6 transition-transform group-hover:scale-110" />
-                    <span>Convert to {format === 'mermaid' ? 'Mermaid' : 'Draw.io'}</span>
+                    <span>
+                      Convert to {format === 'mermaid' ? 'Mermaid' : format === 'drawio' ? 'Draw.io' : 'UML'}
+                    </span>
                     <PlayIcon className="h-6 w-6 transition-transform group-hover:translate-x-1" />
                   </div>
                 )}
