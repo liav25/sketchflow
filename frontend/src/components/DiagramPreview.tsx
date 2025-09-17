@@ -82,6 +82,16 @@ const MermaidPreview = dynamic(() => import('./MermaidPreview'), {
   ),
 });
 
+// Dynamically load the Draw.io preview to avoid SSR issues
+const DrawioPreview = dynamic(() => import('./DrawioPreview'), {
+  ssr: false,
+  loading: () => (
+    <div className="text-center p-8">
+      <div className="animate-pulse text-neutral-600">Loading diagram preview...</div>
+    </div>
+  ),
+});
+
 interface DiagramPreviewProps {
   format: DiagramFormat;
   diagramCode: string;
@@ -286,7 +296,7 @@ export default function DiagramPreview({
                   </span>
                 </div>
                 
-                <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 min-h-[400px] flex items-center justify-center shadow-elevation-2">
+                <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 min-h-[400px] shadow-elevation-2">
                   {format === 'mermaid' ? (
                     <div className="w-full max-h-[600px] overflow-auto">
                       <MermaidErrorBoundary fallback={MermaidFallback}>
@@ -294,18 +304,8 @@ export default function DiagramPreview({
                       </MermaidErrorBoundary>
                     </div>
                   ) : (
-                    <div className="text-center space-y-6">
-                      <div className="w-24 h-24 bg-success-100 dark:bg-success-900/30 rounded-3xl flex items-center justify-center mx-auto">
-                        <DocumentArrowUpIcon className="w-12 h-12 text-success-600 dark:text-success-400" />
-                      </div>
-                      <div>
-                        <h4 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
-                          Draw.io XML Ready!
-                        </h4>
-                        <p className="text-neutral-600 dark:text-neutral-300 text-lg">
-                          Your diagram XML is ready to import into Draw.io
-                        </p>
-                      </div>
+                    <div className="w-full">
+                      <DrawioPreview xml={diagramCode} />
                     </div>
                   )}
                 </div>

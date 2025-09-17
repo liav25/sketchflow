@@ -15,6 +15,7 @@ from langchain_core.messages import HumanMessage
 from langsmith import traceable
 
 from app.core.state_types import SketchConversionState
+from app.core.llm_factory import get_chat_model
 from app.prompts.prompt_templates import PromptTemplates
 
 
@@ -24,30 +25,13 @@ class MermaidGenerationAgent:
     optimizations and validation.
     """
     
-    def __init__(self):
+    def __init__(self, *, model: str | None = None, temperature: float | None = None):
         self.prompt_templates = PromptTemplates()
-        self.openai_client = None
-        self.anthropic_client = None
-        self._initialize_llm_clients()
-    
-    def _initialize_llm_clients(self):
-        """Initialize text-based LLM clients."""
-        openai_key = os.getenv("OPENAI_API_KEY")
-        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-        
-        if openai_key:
-            self.openai_client = ChatOpenAI(
-                model=os.getenv("GENERATION_LLM_MODEL", "gpt-4.1"),
-                api_key=openai_key,
-                temperature=0.1
-            )
-        
-        if anthropic_key:
-            self.anthropic_client = ChatAnthropic(
-                model="claude-3-5-sonnet-20241022",
-                api_key=anthropic_key,
-                temperature=0.1
-            )
+        self.client = None
+        self.provider = None
+        resolved_model = model or os.getenv("GENERATION_LLM_MODEL", "gpt-4.1")
+        resolved_temp = 0.1 if temperature is None else float(temperature)
+        self.client, self.provider = get_chat_model(resolved_model, temperature=resolved_temp)
     
     def _clean_mermaid_code(self, code: str) -> str:
         """Clean and format Mermaid diagram code."""
@@ -160,7 +144,7 @@ class MermaidGenerationAgent:
         
         # Build instructions with corrections for retries
         if retry_count > 0 and corrections:
-            enhanced_instructions = f"{base_instructions}\n\nApply these corrections strictly (retry {retry_count + 1}):\n{corrections}"
+            enhanced_instructions = f"{base_instructions}\n\nApply these validation instructions strictly (retry {retry_count + 1}):\n{corrections}"
         else:
             enhanced_instructions = base_instructions
         
@@ -178,9 +162,8 @@ class MermaidGenerationAgent:
         )
         
         try:
-            # Choose LLM client (prefer OpenAI, fallback to Anthropic)
-            client = self.openai_client or self.anthropic_client
-            
+            # Use the single configured client
+            client = self.client
             if not client:
                 raise ValueError("No LLM client available. Please configure OPENAI_API_KEY or ANTHROPIC_API_KEY.")
             

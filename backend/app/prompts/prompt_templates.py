@@ -1,5 +1,5 @@
 """
-Centralized prompt template management system for SketchFlow AI agents.
+Simplified prompt template management for the new 4-agent architecture.
 """
 
 from typing import Dict, Any
@@ -8,255 +8,225 @@ from string import Template
 
 class PromptTemplates:
     """
-    Centralized prompt template management with variable substitution.
+    Simplified prompt templates for the new multi-perspective agent system.
+    Each template is focused, short, and has a single clear purpose.
     """
-    
+
     def __init__(self):
         pass
-    
+
     def format_prompt(self, template: str, **kwargs) -> str:
         """
         Format a prompt template with provided variables.
-        
+
         Args:
             template: The template string with $variable placeholders
             **kwargs: Variables to substitute in the template
-            
+
         Returns:
             Formatted prompt string
         """
         return Template(template).safe_substitute(**kwargs)
+
+    # ===== NEW 4-AGENT ARCHITECTURE PROMPTS =====
     
-    def get_vision_analysis_prompt(self, notes: str = "", format_type: str = "mermaid") -> str:
-        """Get the vision analysis prompt with variables."""
-        template = self._get_vision_template()
+    def get_scene_understanding_prompt(self, user_notes: str) -> str:
+        """Agent 1: Scene Understanding - Natural language description only."""
+        template = self._get_scene_understanding_template()
+        return self.format_prompt(template, user_notes=user_notes)
+    
+    def get_structure_analysis_prompt(self, scene_description: str, user_notes: str) -> str:
+        """Agent 2: Structure Analysis - Abstract patterns and relationships."""
+        template = self._get_structure_analysis_template()
+        return self.format_prompt(template, scene_description=scene_description, user_notes=user_notes)
+    
+    def get_multi_format_generation_prompt(
+        self, scene_description: str, structural_analysis: str, target_format: str
+    ) -> str:
+        """Agent 3: Multi-Format Generation - Multiple diagram candidates."""
+        template = self._get_multi_format_generation_template()
         return self.format_prompt(
             template,
-            user_notes=notes,
-            target_format=format_type
+            scene_description=scene_description,
+            structural_analysis=structural_analysis,
+            target_format=target_format
         )
     
-    def get_diagram_generation_prompt(self, description: str, instructions: str, format_type: str) -> str:
-        """Get the diagram generation prompt with variables."""
-        template = self._get_generation_template()
+    def get_synthesis_prompt(
+        self, 
+        scene_description: str, 
+        structural_analysis: str, 
+        candidates: str, 
+        target_format: str
+    ) -> str:
+        """Agent 4: Synthesis - Select and refine the best candidate."""
+        template = self._get_synthesis_template()
         return self.format_prompt(
             template,
-            sketch_description=description,
-            generation_instructions=instructions,
-            target_format=format_type
+            scene_description=scene_description,
+            structural_analysis=structural_analysis,
+            candidates=candidates,
+            target_format=target_format
         )
     
-    def get_mermaid_generation_prompt(self, description: str, instructions: str, suggested_type: str = "flowchart TD") -> str:
-        """Get the Mermaid-specific generation prompt with variables."""
-        template = self._get_mermaid_generation_template()
-        return self.format_prompt(
-            template,
-            sketch_description=description,
-            generation_instructions=instructions,
-            suggested_diagram_type=suggested_type
-        )
+    # ===== SIMPLIFIED PROMPT TEMPLATES =====
     
-    def get_drawio_generation_prompt(self, description: str, instructions: str, style_hints: dict) -> str:
-        """Get the Draw.io-specific generation prompt with variables."""
-        template = self._get_drawio_generation_template()
-        return self.format_prompt(
-            template,
-            sketch_description=description,
-            generation_instructions=instructions,
-            style_hints=str(style_hints),
-            default_shape=style_hints.get('default_shape', 'rounded=1;whiteSpace=wrap;html=1;')
-        )
-    
-    def get_validation_prompt(self, diagram_code: str, description: str, format_type: str) -> str:
-        """Get the validation prompt with variables."""
-        template = self._get_validation_template()
-        return self.format_prompt(
-            template,
-            diagram_code=diagram_code,
-            sketch_description=description,
-            target_format=format_type
-        )
-    
-    def _get_vision_template(self) -> str:
-        """Vision analysis prompt template."""
-        return """You are an expert at analyzing hand-drawn sketches and diagrams. Your task is to:
+    def _get_scene_understanding_template(self) -> str:
+        """Agent 1: Simple scene understanding prompt (30 lines vs old 150+)."""
+        return """You are analyzing a hand-drawn sketch or diagram. 
 
-1. Carefully analyze the provided sketch image
-2. Identify all visual elements (shapes, connections, text, arrows, etc.)
-3. Understand the overall structure and relationships
-4. Create detailed instructions for generating a $target_format diagram
+Describe what you see in natural language, as if explaining to a colleague:
 
-User provided notes: "$user_notes"
+- What type of diagram is this? (flowchart, network, org chart, sequence, etc.)
+- How many main elements are there?
+- How are they connected or related?
+- What seems to be the main flow or purpose?
+- Any text labels you can read?
+- Overall layout (left-to-right, top-to-bottom, circular, etc.)?
 
-Please provide your analysis in this exact format:
+Keep it conversational and natural. Don't try to be precise about coordinates or formatting.
+Focus on what you actually see, not what you think it should be.
 
-SKETCH DESCRIPTION:
-[Detailed description of what you see in the sketch - include all shapes, text, connections, layout]
+User notes: "$user_notes"
 
-IDENTIFIED ELEMENTS:
-[List all distinct elements: boxes, circles, arrows, text labels, etc.]
+Respond with a clear, natural description of the scene."""
 
-STRUCTURE ANALYSIS:
-[Describe the overall flow, hierarchy, or organization of the elements]
+    def _get_structure_analysis_template(self) -> str:
+        """Agent 2: Abstract structure analysis prompt."""
+        return """Based on this scene description and user notes, identify the abstract structure:
 
-GENERATION INSTRUCTIONS:
-[Specific, detailed instructions for creating a $target_format diagram that accurately represents this sketch]
+SCENE DESCRIPTION:
+$scene_description
 
-Be thorough and precise - your analysis will be used to generate the final diagram."""
+USER NOTES:
+$user_notes
 
-    def _get_generation_template(self) -> str:
-        """Diagram generation prompt template."""
-        return """You are an expert at creating $target_format diagrams. Based on the sketch analysis provided, generate the appropriate diagram code.
+Analyze and output:
 
-SKETCH DESCRIPTION:
-$sketch_description
+1. **Element Types**: What kinds of elements are there? (start, process, decision, end, data, etc.)
 
-GENERATION INSTRUCTIONS:
-$generation_instructions
+2. **Connection Patterns**: How do elements connect? (linear sequence, branching, loops, parallel paths, etc.)
+
+3. **Suggested Diagram Type**: What diagram type best fits this structure? (flowchart, sequence diagram, network diagram, etc.)
+
+4. **Key Relationships**: What are the most important connections or groupings?
+
+5. **Flow Direction**: What's the primary direction of information/process flow?
+
+Be concise and focus on the logical structure, not visual details.
+Think about the underlying relationships and patterns."""
+
+    def _get_multi_format_generation_template(self) -> str:
+        """Agent 3: Generate multiple diagram candidates."""
+        return """You are an expert diagram generator. Create 2-3 different approaches for representing this structure.
+
+SCENE DESCRIPTION:
+$scene_description
+
+STRUCTURAL ANALYSIS:
+$structural_analysis
 
 TARGET FORMAT: $target_format
 
-Generate valid $target_format code that accurately represents the analyzed sketch. 
+Generate 2-3 different $target_format diagrams that represent this structure. For each approach:
 
-For Mermaid diagrams:
-- Use appropriate diagram type (flowchart, sequence, etc.)
-- Include proper node IDs and connections
-- Add labels and styling as needed
+1. **Approach 1**: [Brief description of this approach]
+[Diagram code here]
 
-For Draw.io diagrams:
-- Generate valid XML format
-- Include proper mxCell elements
-- Set appropriate coordinates and styling
+2. **Approach 2**: [Brief description of this approach]  
+[Diagram code here]
 
-IMPORTANT: Only return the diagram code, no explanations or markdown formatting."""
+3. **Approach 3** (if applicable): [Brief description of this approach]
+[Diagram code here]
 
-    def _get_validation_template(self) -> str:
-        """Validation prompt template.""" 
-        return """You are an expert at validating and correcting $target_format diagrams. Your task is to:
+For Mermaid: Use appropriate diagram types (flowchart TD/LR, sequenceDiagram, etc.)
+For Draw.io: Generate valid XML starting with <mxfile>
 
-1. Analyze the generated diagram code for syntax errors
-2. Check if it accurately represents the original sketch description
-3. Suggest improvements or corrections if needed
+Keep each approach distinct - try different layouts, styles, or emphasis.
+Include only valid diagram code with no markdown or explanations in the code blocks."""
 
-ORIGINAL SKETCH DESCRIPTION:
-$sketch_description
+    def _get_synthesis_template(self) -> str:
+        """Agent 4: Select and refine the best approach."""
+        return """You are an expert at selecting and refining diagram solutions.
 
-GENERATED DIAGRAM CODE:
-$diagram_code
+SCENE DESCRIPTION:
+$scene_description
+
+STRUCTURAL ANALYSIS:
+$structural_analysis
+
+CANDIDATE APPROACHES:
+$candidates
 
 TARGET FORMAT: $target_format
 
-Please provide your validation in BOTH formats for maximum compatibility:
+Your task:
+1. Review all the candidate approaches
+2. Select the one that best represents the original sketch
+3. Refine and polish it for final output
 
-First, provide a JSON response in this format:
-```json
-{
-    "syntax_check": "Check for syntax errors, invalid elements, or formatting issues",
-    "accuracy_check": "Verify if the diagram accurately represents the original sketch",
-    "validation_result": "PASSED or NEEDS_CORRECTION",
-    "corrections": "Provide corrected diagram code if NEEDS_CORRECTION, otherwise None required"
-}
-```
+Consider:
+- Accuracy to the original sketch
+- Clarity and readability  
+- Appropriate use of the target format
+- Completeness of information
 
-Then also provide the text format as backup:
+Output the final refined $target_format diagram code only.
+No explanations, no markdown, just the polished diagram code."""
 
-SYNTAX CHECK:
-[Check for syntax errors, invalid elements, or formatting issues]
+    # ===== FORMAT-SPECIFIC GENERATION PROMPTS =====
 
-ACCURACY CHECK:
-[Verify if the diagram accurately represents the original sketch]
-
-VALIDATION RESULT:
-[Either "PASSED" if no issues found, or "NEEDS_CORRECTION" if issues exist]
-
-CORRECTIONS (if needed):
-[Provide corrected diagram code if NEEDS_CORRECTION, otherwise "None required"]
-
-Be thorough in your validation - accuracy and proper syntax are critical. Use "PASSED" only when the diagram is syntactically correct and accurately represents the sketch."""
-
-    def _get_mermaid_generation_template(self) -> str:
-        """Mermaid-specific generation prompt template."""
-        return """You are an expert at creating Mermaid diagrams. Based on the sketch analysis provided, generate accurate Mermaid diagram code.
+    def get_mermaid_generation_prompt(self, description: str, instructions: str, suggested_type: str) -> str:
+        """Prompt for Mermaid generation agent (code-only output)."""
+        template = """You generate clean, valid Mermaid diagrams.
 
 SKETCH DESCRIPTION:
-$sketch_description
+$description
 
-GENERATION INSTRUCTIONS:
-$generation_instructions
+ADDITIONAL INSTRUCTIONS (optional):
+$instructions
 
-SUGGESTED DIAGRAM TYPE: $suggested_diagram_type
+REQUIREMENTS:
+- Use this diagram type by default unless clearly inappropriate: $suggested_type
+- Output Mermaid code only (no markdown fences, no commentary)
+- Prefer readable identifiers and concise labels
+- Ensure syntactic correctness for Mermaid renderers
 
-Create a valid Mermaid diagram that accurately represents the analyzed sketch. Follow these Mermaid-specific guidelines:
+Return only the Mermaid diagram code."""
+        return self.format_prompt(template, description=description, instructions=instructions, suggested_type=suggested_type)
 
-**Diagram Types:**
-- flowchart TD/LR: For process flows, decision trees, workflows
-- sequenceDiagram: For interactions between actors/systems
-- classDiagram: For class relationships and structure
-- stateDiagram-v2: For state machines and transitions
-- erDiagram: For entity relationships
-- gantt: For project timelines
-- pie: For data visualization
+    def get_drawio_generation_prompt(self, description: str, instructions: str, style_hints: dict[str, object]) -> str:
+        """Prompt for Draw.io generation agent (valid <mxfile> XML only)."""
+        # Extract style hints with conservative defaults
+        style = (style_hints or {}).get("style", "flowchart")
+        default_shape = (style_hints or {}).get("default_shape", "rounded=1;whiteSpace=wrap;html=1;")
+        connector_style = (style_hints or {}).get("connector_style", "edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;")
 
-**Mermaid Syntax Rules:**
-- Use clear, descriptive node IDs (A, B, C... or meaningful names)
-- Include proper connections with arrows (-->, ---, ->>)
-- Add labels to connections when needed
-- Use appropriate shapes for different node types
-- Include styling when it enhances clarity
-
-**Best Practices:**
-- Start with the suggested diagram type: $suggested_diagram_type
-- Use meaningful node labels that reflect the sketch content
-- Ensure proper flow direction and logical connections
-- Include decision points as diamond shapes when applicable
-- Add subgraphs for grouping related elements when appropriate
-
-IMPORTANT: Return ONLY the Mermaid diagram code, no explanations or markdown formatting."""
-
-    def _get_drawio_generation_template(self) -> str:
-        """Draw.io-specific generation prompt template."""
-        return """You are an expert at creating Draw.io (diagrams.net) XML diagrams. Based on the sketch analysis provided, generate accurate Draw.io XML code.
+        template = """You generate valid Draw.io XML diagrams (diagrams.net).
 
 SKETCH DESCRIPTION:
-$sketch_description
+$description
 
-GENERATION INSTRUCTIONS:
-$generation_instructions
+ADDITIONAL INSTRUCTIONS (optional):
+$instructions
 
-STYLE HINTS: $style_hints
-DEFAULT SHAPE STYLE: $default_shape
+STYLE HINTS:
+- Overall style: $style
+- Default vertex style: $default_shape
+- Default connector style: $connector_style
 
-Create a valid Draw.io XML diagram that accurately represents the analyzed sketch. Follow these Draw.io-specific guidelines:
+REQUIREMENTS:
+- Output valid XML starting with <mxfile> and including <diagram> and <mxGraphModel>
+- Include at least one vertex and appropriate edges
+- Do not include markdown fences or explanations
+- Prefer simple geometry and positions; keep readable labels
 
-**XML Structure Requirements:**
-- Root element must be <mxfile host="app.diagrams.net">
-- Include <diagram name="Page-1"> element
-- Use <mxGraphModel> with proper dimensions (dx="800" dy="600" grid="1" gridSize="10")
-- Include root cells with id="0" and id="1"
-- Use proper mxCell elements for all shapes and connections
-
-**Shape Guidelines:**
-- Rectangle: style="rounded=0;whiteSpace=wrap;html=1;"
-- Rounded Rectangle: style="rounded=1;whiteSpace=wrap;html=1;"
-- Ellipse/Circle: style="ellipse;whiteSpace=wrap;html=1;"
-- Diamond (Decision): style="rhombus;whiteSpace=wrap;html=1;"
-- Process: Use default shape style: $default_shape
-
-**Positioning:**
-- Use logical coordinates with proper spacing (minimum 40-60 units between elements)
-- Standard shape sizes: width="120" height="60" for rectangles
-- Adjust sizes based on text content length
-- Center elements properly within the canvas
-
-**Connections:**
-- Use edge elements with source and target attributes
-- Style: style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;"
-- Add labels to edges when specified in the sketch
-
-**Best Practices:**
-- Use vertex="1" for shapes and edge="1" for connections
-- Include parent="1" for all elements
-- Use meaningful values for shape labels
-- Ensure proper XML formatting and escaping
-
-IMPORTANT: Return ONLY the Draw.io XML code, no explanations or markdown formatting."""
+Return only the Draw.io XML starting with <mxfile>."""
+        return self.format_prompt(
+            template,
+            description=description,
+            instructions=instructions,
+            style=str(style),
+            default_shape=str(default_shape),
+            connector_style=str(connector_style),
+        )

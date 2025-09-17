@@ -17,6 +17,7 @@ from langchain_core.messages import HumanMessage
 from langsmith import traceable
 
 from app.core.state_types import SketchConversionState
+from app.core.llm_factory import get_chat_model
 from app.prompts.prompt_templates import PromptTemplates
 
 
@@ -25,47 +26,81 @@ class ValidationAgent:
     Agent responsible for validating generated diagrams and proposing corrections.
     """
 
-    def __init__(self):
+    def __init__(self, *, model: str | None = None, temperature: float | None = None):
         self.prompt_templates = PromptTemplates()
-        self.openai_client = None
-        self.anthropic_client = None
-        self._initialize_llm_clients()
+        self.client = None
+        self.provider = None
+        resolved_model = model or os.getenv("VALIDATION_LLM_MODEL", "gpt-4.1")
+        resolved_temp = 0.0 if temperature is None else float(temperature)
+        self.client, self.provider = get_chat_model(resolved_model, temperature=resolved_temp)
 
     def _initialize_llm_clients(self):
-        """Initialize text-based LLM clients for validation."""
-        openai_key = os.getenv("OPENAI_API_KEY")
-        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-
-        if openai_key:
-            self.openai_client = ChatOpenAI(
-                model=os.getenv("VALIDATION_LLM_MODEL", "gpt-4.1"),
-                api_key=openai_key,
-                temperature=0.0,
-            )
-
-        if anthropic_key:
-            self.anthropic_client = ChatAnthropic(
-                model="claude-3-5-sonnet-20241022",
-                api_key=anthropic_key,
-                temperature=0.0,
-            )
+        """Deprecated: retained for backward compatibility."""
+        pass
 
     def _parse_validation_response(self, response_text: str) -> Dict[str, str]:
-        """Parse the structured validation response into fields."""
-        # First try JSON parsing
+        """Parse the structured validation response into fields.
+
+        Returns a dict with keys: syntax_check, accuracy_check, validation_result, corrections (instructions only).
+        """
+        # First try JSON parsing (supports bare JSON or fenced JSON)
+        def _extract_first_json_block(text: str) -> str | None:
+            # Prefer fenced JSON if available
+            fenced = re.search(r'```json\s*(\{.*?\})\s*```', text, re.DOTALL)
+            if fenced:
+                return fenced.group(1)
+            # Otherwise attempt to capture the first top-level JSON object
+            start = text.find('{')
+            if start == -1:
+                return None
+            depth = 0
+            for i in range(start, len(text)):
+                ch = text[i]
+                if ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth -= 1
+                    if depth == 0:
+                        return text[start:i+1]
+            return None
+
         try:
-            # Look for JSON block in response
-            json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
+            json_str = _extract_first_json_block(response_text)
+            if json_str:
                 parsed_json = json.loads(json_str)
+                # Legacy schema support
+                if "syntax_check" in parsed_json or "accuracy_check" in parsed_json:
+                    return {
+                        "syntax_check": parsed_json.get("syntax_check", ""),
+                        "accuracy_check": parsed_json.get("accuracy_check", ""),
+                        "validation_result": parsed_json.get("validation_result", "NEEDS_CORRECTION").upper(),
+                        "corrections": parsed_json.get("corrections", ""),
+                    }
+                # New schema mapping: instructions-only
+                syntax_valid = parsed_json.get("syntax_valid")
+                syntax_errors = parsed_json.get("syntax_errors", [])
+                struct_acc = parsed_json.get("structure_accuracy", {})
+                issues = parsed_json.get("issues", [])
+                validation_result = parsed_json.get("validation_result", "NEEDS_CORRECTION").upper()
+                instructions = parsed_json.get("instructions")
+
+                syntax_summary = (
+                    "VALID" if syntax_valid is True else ("; ".join(syntax_errors) if syntax_errors else "")
+                )
+                accuracy_summary = struct_acc.get("notes", "")
+                # Prefer top-level instructions, otherwise aggregate issue instructions
+                if instructions and isinstance(instructions, str) and instructions.strip():
+                    corrections_out = instructions.strip()
+                else:
+                    bullets = [f"- {it.get('instruction','').strip()}" for it in issues if it.get('instruction')]
+                    corrections_out = "\n".join([b for b in bullets if b and b != "-"])
                 return {
-                    "syntax_check": parsed_json.get("syntax_check", ""),
-                    "accuracy_check": parsed_json.get("accuracy_check", ""),
-                    "validation_result": parsed_json.get("validation_result", "NEEDS_CORRECTION").upper(),
-                    "corrections": parsed_json.get("corrections", ""),
+                    "syntax_check": syntax_summary,
+                    "accuracy_check": accuracy_summary,
+                    "validation_result": validation_result,
+                    "corrections": corrections_out,
                 }
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError, TypeError) as e:
             print(f"Failed to parse JSON validation response: {e}")
         
         # Fallback to original text parsing
@@ -88,7 +123,8 @@ class ValidationAgent:
             if line.startswith("VALIDATION RESULT:"):
                 current_section = "validation_result"
                 continue
-            if line.startswith("CORRECTIONS"):
+            # Support new instruction-only label and legacy label
+            if line.startswith("INSTRUCTIONS TO FIX") or line.startswith("INSTRUCTIONS:") or line.startswith("CORRECTIONS"):
                 current_section = "corrections"
                 continue
             if current_section and line:
@@ -133,7 +169,7 @@ class ValidationAgent:
         )
 
         try:
-            client = self.openai_client or self.anthropic_client
+            client = self.client
             if not client:
                 raise ValueError("No LLM client available. Configure OPENAI_API_KEY or ANTHROPIC_API_KEY.")
 

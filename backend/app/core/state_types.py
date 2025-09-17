@@ -1,46 +1,42 @@
 """
-State type definitions for LangGraph agents.
+Simplified state type definitions for the new 4-agent architecture.
 """
 
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from typing_extensions import TypedDict
+from dataclasses import dataclass
+
+
+@dataclass
+class DiagramCandidate:
+    """A potential diagram solution with metadata."""
+    format: str  # "mermaid" or "drawio"
+    code: str
+    style_approach: str  # "flowchart", "sequence", "network", etc.
+    confidence_score: float  # 0.0 to 1.0
+    reasoning: str  # Why this approach was chosen
 
 
 class SketchConversionState(TypedDict):
     """
-    State for the sketch-to-diagram conversion workflow.
+    Simplified state for the new 4-agent multi-perspective workflow.
     
-    This state is passed between all nodes in the LangGraph workflow.
+    Each agent adds exactly one field to build understanding progressively.
     """
     
-    # Input parameters
+    # Core inputs
     file_path: str
-    format: str  # "mermaid" or "drawio" 
-    notes: str
+    user_notes: str
+    target_format: str  # "mermaid" or "drawio"
     job_id: str
     
-    # Vision Analysis Agent outputs
-    sketch_description: Optional[str]
-    identified_elements: Optional[str]
-    structure_analysis: Optional[str] 
-    generation_instructions: Optional[str]
-    
-    # Diagram Generation Agent outputs
-    diagram_code: Optional[str]
-    
-    # Validation Agent outputs
-    syntax_check: Optional[str]
-    accuracy_check: Optional[str]
-    validation_result: Optional[str]  # "PASSED" or "NEEDS_CORRECTION"
-    corrections: Optional[str]
-    validation_passed: Optional[bool]
-    
-    # Final outputs
-    final_code: Optional[str]
+    # Progressive understanding (each agent adds one)
+    scene_description: Optional[str]  # Agent 1: Natural language scene description
+    structural_analysis: Optional[str]  # Agent 2: Abstract structure and relationships
+    diagram_candidates: Optional[List[DiagramCandidate]]  # Agent 3: Multiple diagram options
+    final_diagram: Optional[str]  # Agent 4: Selected and refined final diagram
     
     # Metadata
-    retry_count: Optional[int]
-    processing_time: Optional[str]
-    agents_used: Optional[list]
-    thread_id: Optional[str]
-    previous_corrections: Optional[str]  # For circuit breaker logic
+    confidence_score: Optional[float]  # Overall confidence in the result
+    processing_path: Optional[List[str]]  # Which agents ran and in what order
+    thread_id: Optional[str]  # For LangGraph checkpointing

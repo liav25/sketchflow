@@ -51,7 +51,8 @@ export default function Home() {
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      // Increase timeout to 300 seconds to accommodate longer conversions
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 300s timeout
 
       const response = await fetch(`${apiBase}/api/convert`, {
         method: 'POST',

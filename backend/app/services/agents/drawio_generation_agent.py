@@ -16,6 +16,7 @@ from langchain_core.messages import HumanMessage
 from langsmith import traceable
 
 from app.core.state_types import SketchConversionState
+from app.core.llm_factory import get_chat_model
 from app.prompts.prompt_templates import PromptTemplates
 
 
@@ -25,47 +26,51 @@ class DrawioGenerationAgent:
     optimizations and validation.
     """
     
-    def __init__(self):
+    def __init__(self, *, model: str | None = None, temperature: float | None = None):
         self.prompt_templates = PromptTemplates()
-        self.openai_client = None
-        self.anthropic_client = None
-        self._initialize_llm_clients()
-    
-    def _initialize_llm_clients(self):
-        """Initialize text-based LLM clients."""
-        openai_key = os.getenv("OPENAI_API_KEY")
-        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-        
-        if openai_key:
-            self.openai_client = ChatOpenAI(
-                model=os.getenv("GENERATION_LLM_MODEL", "gpt-4.1"),
-                api_key=openai_key,
-                temperature=0.1
-            )
-        
-        if anthropic_key:
-            self.anthropic_client = ChatAnthropic(
-                model="claude-3-5-sonnet-20241022",
-                api_key=anthropic_key,
-                temperature=0.1
-            )
+        self.client = None
+        self.provider = None
+        resolved_model = model or os.getenv("GENERATION_LLM_MODEL", "gpt-4.1")
+        resolved_temp = 0.1 if temperature is None else float(temperature)
+        self.client, self.provider = get_chat_model(resolved_model, temperature=resolved_temp)
     
     def _clean_drawio_code(self, code: str) -> str:
-        """Clean and format Draw.io XML diagram code."""
-        code = code.strip()
-        
-        # Remove markdown code blocks if present
-        if code.startswith("```"):
-            lines = code.split('\n')
-            # Remove first line (```xml or ```drawio)
+        """Clean and normalize Draw.io XML code returned by an LLM.
+
+        Handles common issues:
+        - Fenced code blocks (```xml / ```drawio)
+        - Leading/trailing commentary around the XML
+        - HTML entity escaping (e.g., &lt;mxfile&gt;)
+        - Extra XML prolog – we require output to start at <mxfile>
+        """
+        import html
+
+        txt = (code or "").strip()
+
+        # Strip fenced code blocks
+        if txt.startswith("```"):
+            lines = txt.split("\n")
             if len(lines) > 1:
                 lines = lines[1:]
-            # Remove last line if it's just ```
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
-            code = '\n'.join(lines)
-        
-        return code.strip()
+            txt = "\n".join(lines)
+
+        txt = txt.strip()
+
+        # Unescape common HTML entities if the model escaped XML
+        if "&lt;mxfile" in txt or "&lt;/mxfile" in txt:
+            txt = html.unescape(txt)
+
+        # Remove any XML prolog and leading text before <mxfile>
+        mx_start = txt.find("<mxfile")
+        mx_end = txt.rfind("</mxfile>")
+        if mx_start != -1 and mx_end != -1:
+            # Include closing tag fully
+            mx_end = mx_end + len("</mxfile>")
+            txt = txt[mx_start:mx_end]
+
+        return txt.strip()
     
     def _validate_drawio_xml(self, xml_code: str) -> tuple[bool, str]:
         """Validate Draw.io XML syntax and structure."""
@@ -99,6 +104,11 @@ class DrawioGenerationAgent:
             cells = root_elem.findall('mxCell')
             if len(cells) < 2:  # At least root cell (id="0") and layer cell (id="1")
                 return False, "Missing basic cell structure"
+
+            # Ensure at least one vertex exists to avoid empty docs
+            has_vertex = any(c.get('vertex') == '1' for c in cells)
+            if not has_vertex:
+                return False, "No vertex cells found"
             
             return True, ""
             
@@ -218,7 +228,8 @@ class DrawioGenerationAgent:
         Returns:
             Updated state with generated Draw.io XML diagram code
         """
-        print(f"Draw.io Generation Agent: Creating Draw.io diagram for job {state['job_id']}")
+        retry_count = int(state.get("retry_count", 0) or 0)
+        print(f"Draw.io Generation Agent: Creating Draw.io diagram for job {state['job_id']} (retry {retry_count})")
         
         # Detect diagram style preferences
         diagram_style = self._detect_diagram_style(
@@ -226,17 +237,27 @@ class DrawioGenerationAgent:
             state.get('generation_instructions', '')
         )
         
+        # Handle retry logic and corrections similar to Mermaid agent
+        base_instructions = state.get('generation_instructions', '')
+        corrections = state.get('corrections', '').strip()
+        if retry_count > 0 and corrections:
+            enhanced_instructions = f"{base_instructions}\n\nApply these validation instructions strictly (retry {retry_count + 1}):\n{corrections}"
+        else:
+            enhanced_instructions = base_instructions
+
+        # Increment retry count for the loop
+        state["retry_count"] = retry_count + 1
+
         # Get the Draw.io-specific generation prompt
         prompt = self.prompt_templates.get_drawio_generation_prompt(
             description=state.get('sketch_description', ''),
-            instructions=state.get('generation_instructions', ''),
+            instructions=enhanced_instructions,
             style_hints=diagram_style
         )
         
         try:
-            # Choose LLM client (prefer OpenAI, fallback to Anthropic)
-            client = self.openai_client or self.anthropic_client
-            
+            # Use the single configured client
+            client = self.client
             if not client:
                 raise ValueError("No LLM client available. Please configure OPENAI_API_KEY or ANTHROPIC_API_KEY.")
             

@@ -15,6 +15,7 @@ from langchain_core.messages import HumanMessage
 from langsmith import traceable
 
 from app.core.state_types import SketchConversionState
+from app.core.llm_factory import get_chat_model
 from app.prompts.prompt_templates import PromptTemplates
 from app.core.logging_config import get_logger
 
@@ -25,31 +26,17 @@ class VisionAnalysisAgent:
     detailed descriptions and instructions for diagram generation.
     """
     
-    def __init__(self):
+    def __init__(self, *, model: str | None = None, temperature: float | None = None):
         self.prompt_templates = PromptTemplates()
-        self.openai_client = None
-        self.anthropic_client = None
-        self._initialize_llm_clients()
+        self.client = None
+        self.provider = None
         self.logger = get_logger("sketchflow.vision")
-    
-    def _initialize_llm_clients(self):
-        """Initialize vision-capable LLM clients."""
-        openai_key = os.getenv("OPENAI_API_KEY")
-        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-        
-        if openai_key:
-            self.openai_client = ChatOpenAI(
-                model=os.getenv("VISION_LLM_MODEL", "gpt-4.1"),  # configurable
-                api_key=openai_key,
-                temperature=0.1
-            )
-        
-        if anthropic_key:
-            self.anthropic_client = ChatAnthropic(
-                model="claude-3-5-sonnet-20241022",  # Claude-3 with vision
-                api_key=anthropic_key,
-                temperature=0.1
-            )
+        # Resolve model and temperature from args or env
+        resolved_model = model or os.getenv("VISION_LLM_MODEL", "gpt-4.1")
+        resolved_temp = 0.1 if temperature is None else float(temperature)
+        # Initialize a single client based on model
+        self.client, self.provider = get_chat_model(resolved_model, temperature=resolved_temp)
+
     
     def _encode_image(self, image_path: str) -> str:
         """Encode image file to base64 for vision LLM."""
@@ -115,14 +102,13 @@ class VisionAnalysisAgent:
             # Encode the image
             base64_image = self._encode_image(state['file_path'])
             
-            # Choose LLM client (prefer OpenAI GPT-4V, fallback to Claude)
-            client = self.openai_client or self.anthropic_client
-            
+            # Use the single configured client
+            client = self.client
             if not client:
                 raise ValueError("No vision-capable LLM client available. Please configure OPENAI_API_KEY or ANTHROPIC_API_KEY.")
             
             # Create message with image
-            if isinstance(client, ChatOpenAI):
+            if self.provider == "openai" or isinstance(client, ChatOpenAI):
                 # OpenAI format
                 message = HumanMessage(
                     content=[
