@@ -8,7 +8,6 @@ import {
   SparklesIcon,
   CodeBracketIcon,
   EyeIcon,
-  DocumentArrowUpIcon,
   CloudArrowDownIcon,
   LinkIcon
 } from '@heroicons/react/24/outline';

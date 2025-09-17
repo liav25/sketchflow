@@ -101,8 +101,11 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
         setIsMobile(window.matchMedia('(pointer: coarse)').matches);
       } catch {}
 
-      // Basic camera capability check
-      setHasCamera(!!(navigator.mediaDevices && (navigator.mediaDevices as any).getUserMedia));
+      // Basic camera capability check without using `any`
+      setHasCamera(
+        typeof navigator !== 'undefined' &&
+          typeof navigator.mediaDevices?.getUserMedia === 'function'
+      );
 
       const onPaste = (e: ClipboardEvent) => {
         const items = e.clipboardData?.items || [];

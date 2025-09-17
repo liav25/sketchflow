@@ -8,6 +8,7 @@ import DiagramPreview from '@/components/DiagramPreview';
 import { useAuth } from '@/components/AuthProvider';
 import UserMenu from '@/components/UserMenu';
 import ExamplesSwitcher from '@/components/ExamplesSwitcher';
+import AdSlot from '@/components/ads/AdSlot';
 
 export type ConversionState = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
 export type DiagramFormat = 'mermaid' | 'drawio';
@@ -249,6 +250,17 @@ export default function Home() {
       {/* Examples Section */}
       <ExamplesSwitcher />
 
+      {/* Ad: Homepage mid (below examples) */}
+      <section className="py-6">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <AdSlot
+            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOMEPAGE_MID}
+            className="mx-auto"
+            style={{ minHeight: 90 }}
+          />
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-12 bg-brand-surface backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -286,6 +298,17 @@ export default function Home() {
               <p className="text-neutral-700">Export as Mermaid or Draw.io format, ready to use in your favorite tools.</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Ad: Homepage bottom (above upload section) */}
+      <section className="py-6">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <AdSlot
+            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOMEPAGE_BOTTOM}
+            className="mx-auto"
+            style={{ minHeight: 90 }}
+          />
         </div>
       </section>
 

@@ -6,7 +6,6 @@ import { EXAMPLES } from "@/data/examples";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 
 const SWITCH_MS = 4000; // auto-switch every 4 seconds
-const FADE_MS = 2000;   // fade transition duration 2s
 
 export default function ExamplesSwitcher() {
   const [index, setIndex] = useState(0);
