@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRightIcon, SparklesIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import SketchUpload from '@/components/SketchUpload';
 import ConversionForm from '@/components/ConversionForm';
@@ -23,6 +23,42 @@ export default function Home() {
   const { user, getAccessToken } = useAuth();
 
   console.log('[HomePage] Page loaded, user state:', { hasUser: !!user });
+
+  // Restore preview state after auth redirect
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? sessionStorage.getItem('sf.previewState') : null;
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Partial<{ format: DiagramFormat; diagramCode: string; jobId: string; conversionState: string }>;
+      if (saved && saved.diagramCode && saved.format) {
+        setFormat(saved.format);
+        setGeneratedDiagram(saved.diagramCode);
+        setJobId(saved.jobId || '');
+        setConversionState('completed');
+      }
+    } catch (e) {
+      console.warn('Failed to restore preview state after login:', e);
+    } finally {
+      try { sessionStorage.removeItem('sf.previewState'); } catch {}
+    }
+  }, []);
+
+  // Before navigating away (e.g., OAuth redirect), stash preview state
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      try {
+        // Only persist if we actually have a completed preview and an auth redirect is queued
+        const hasRedirect = typeof window !== 'undefined' && !!sessionStorage.getItem('sf.redirect');
+        if (!hasRedirect) return;
+        if (conversionState === 'completed' && generatedDiagram) {
+          const state = { format, diagramCode: generatedDiagram, jobId, conversionState: 'completed' as const };
+          sessionStorage.setItem('sf.previewState', JSON.stringify(state));
+        }
+      } catch {}
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [conversionState, generatedDiagram, format, jobId]);
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);

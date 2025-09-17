@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import Script from 'next/script';
 import "./globals.css";
 import { AuthProvider } from '@/components/AuthProvider';
 
@@ -31,19 +30,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
-      >
-        {/* Google AdSense (loaded only if client id present) */}
-        {process.env.NEXT_PUBLIC_ADSENSE_CLIENT && process.env.NEXT_PUBLIC_ADSENSE_ENABLED !== 'false' ? (
-          <Script
-            id="adsense-script"
-            strategy="afterInteractive"
+      <head>
+        {/* Google AdSense: injected in <head> on every page */}
+        {process.env.NEXT_PUBLIC_ADSENSE_ENABLED !== 'false' ? (
+          <script
             async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9317202877406769"
             crossOrigin="anonymous"
           />
         ) : null}
+      </head>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

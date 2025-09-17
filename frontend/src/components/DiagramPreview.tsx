@@ -111,6 +111,25 @@ export default function DiagramPreview({
   const { user, signInWithGoogle } = useAuth();
   const supabase = createClient();
 
+  // Persist current preview so auth redirect won't lose it
+  const savePreviewState = () => {
+    try {
+      const state = {
+        format,
+        diagramCode,
+        jobId: jobId || null,
+        // Explicit marker so the homepage knows to show preview
+        conversionState: 'completed' as const,
+      };
+      sessionStorage.setItem('sf.previewState', JSON.stringify(state));
+      // Always return to current page after login
+      sessionStorage.setItem('sf.redirect', window.location.pathname + window.location.search);
+    } catch (e) {
+      // Non-fatal; logging only
+      console.warn('Failed to save preview state before login:', e);
+    }
+  };
+
   // Celebration effect on mount
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -121,7 +140,7 @@ export default function DiagramPreview({
 
   const handleCopyCode = async () => {
     if (!user) {
-      sessionStorage.setItem('sf.redirect', window.location.pathname + window.location.search);
+      savePreviewState();
       await signInWithGoogle();
       return;
     }
@@ -149,6 +168,7 @@ export default function DiagramPreview({
 
   const handleDownload = async () => {
     if (!user) {
+      savePreviewState();
       signInWithGoogle();
       return;
     }
@@ -180,6 +200,7 @@ export default function DiagramPreview({
 
   const handleShare = async () => {
     if (!user) {
+      savePreviewState();
       await signInWithGoogle();
       return;
     }
@@ -346,7 +367,13 @@ export default function DiagramPreview({
                   <div className="absolute inset-0 bg-neutral-900/80 backdrop-blur-sm flex items-center justify-center z-10">
                     <div className="text-center space-y-4">
                       <p className="text-neutral-200 text-lg">Sign in with Google to view and copy code</p>
-                      <button className="btn-primary px-6 py-3" onClick={() => signInWithGoogle()}>
+                      <button
+                        className="btn-primary px-6 py-3"
+                        onClick={() => {
+                          savePreviewState();
+                          signInWithGoogle();
+                        }}
+                      >
                         Sign in to Unlock
                       </button>
                     </div>

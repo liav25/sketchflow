@@ -10,6 +10,7 @@ export default function DrawioPreview({ xml }: DrawioPreviewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
 
   // Helper: convert Uint8Array to base64 without stack overflow on large arrays
@@ -24,145 +25,48 @@ export default function DrawioPreview({ xml }: DrawioPreviewProps) {
     return btoa(chunks.join(''));
   };
 
-  // Build a proper #R URL (deflateRaw + base64, then used as-is after #R)
+  // Build viewer and fallback URLs (#R deflateRaw+base64 payload)
   useEffect(() => {
     let cancelled = false;
+    setError(null);
+    setLoading(true);
+
     (async () => {
       try {
         if (!xml) {
-          if (!cancelled) setFallbackUrl(null);
+          if (!cancelled) {
+            setViewerUrl(null);
+            setFallbackUrl(null);
+            setLoading(false);
+          }
           return;
         }
         const { deflateRaw } = await import('pako');
         const deflated = deflateRaw(new TextEncoder().encode(xml));
         const b64 = uint8ToBase64(deflated);
-        if (!cancelled) setFallbackUrl(`https://app.diagrams.net/#R${b64}`);
-      } catch {
-        if (!cancelled) setFallbackUrl(null);
+
+        // Read-only viewer (no postMessage needed)
+        const url = `https://viewer.diagrams.net/?embed=1&spin=1&proto=json&nav=1#R${b64}`;
+        const openUrl = `https://app.diagrams.net/#R${b64}`;
+
+        if (!cancelled) {
+          setViewerUrl(url);
+          setFallbackUrl(openUrl);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          const message = e instanceof Error ? e.message : 'Failed to prepare diagram preview';
+          setError(message);
+          setViewerUrl(null);
+          setFallbackUrl(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [xml]);
-
-  useEffect(() => {
-    let cancelled = false;
-    let timeoutId: NodeJS.Timeout | null = null;
-    
-    setError(null);
-    setLoading(true);
-
-    const render = async () => {
-      try {
-        if (!containerRef.current || !xml) return;
-        
-        // Clean the container
-        containerRef.current.innerHTML = '';
-        
-        // Create iframe with official postMessage API - this is the most reliable approach
-        const iframe = document.createElement('iframe');
-        iframe.style.width = '100%';
-        iframe.style.height = '400px';
-        iframe.style.border = 'none';
-        iframe.style.borderRadius = '8px';
-        // Use official Draw.io embed URL as per documentation
-        iframe.src = 'https://embed.diagrams.net/?embed=1&proto=json&spin=1';
-        
-        let messageReceived = false;
-        
-        // PostMessage listener for Draw.io ready event (following official docs)
-        const messageListener = (event: MessageEvent) => {
-          if (cancelled || !iframe.contentWindow || messageReceived) return;
-          
-          try {
-            // Parse JSON message as per Draw.io documentation
-            const msg = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            
-            // Handle init event as per official Draw.io documentation
-            if (msg.event === 'init') {
-              messageReceived = true;
-              
-              // Send load action with XML as specified in Draw.io docs
-              iframe.contentWindow.postMessage(JSON.stringify({
-                action: 'load',
-                xml: xml
-              }), '*');
-              
-              if (!cancelled) {
-                setLoading(false);
-                setError(null);
-                if (timeoutId) clearTimeout(timeoutId);
-              }
-            }
-            
-          } catch {
-            // Handle non-JSON messages (like simple 'ready' string)
-            if (event.data === 'ready' && !messageReceived) {
-              messageReceived = true;
-              
-              try {
-                iframe.contentWindow.postMessage({
-                  action: 'load',
-                  xml: xml
-                }, '*');
-                
-                if (!cancelled) {
-                  setLoading(false);
-                  setError(null);
-                  if (timeoutId) clearTimeout(timeoutId);
-                }
-              } catch {
-                if (!cancelled) {
-                  setError('Failed to load diagram content');
-                  setLoading(false);
-                }
-              }
-            }
-          }
-        };
-
-        window.addEventListener('message', messageListener);
-        
-        iframe.onerror = () => {
-          if (!cancelled) {
-            setError('Failed to load diagram viewer');
-            setLoading(false);
-          }
-          window.removeEventListener('message', messageListener);
-        };
-
-        containerRef.current.appendChild(iframe);
-        
-        // Set timeout
-        timeoutId = setTimeout(() => {
-          if (!cancelled) {
-            setError('Diagram preview timed out');
-            setLoading(false);
-            window.removeEventListener('message', messageListener);
-          }
-        }, 10000);
-        
-        // Cleanup function for the message listener
-        return () => {
-          window.removeEventListener('message', messageListener);
-        };
-
-      } catch (e) {
-        const message = e instanceof Error ? e.message : 'Failed to render Draw.io diagram';
-        if (!cancelled) {
-          setError(message);
-          setLoading(false);
-          if (containerRef.current) containerRef.current.innerHTML = '';
-        }
-      }
-    };
-
-    render();
 
     return () => {
       cancelled = true;
-      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [xml]);
 
@@ -232,7 +136,22 @@ export default function DrawioPreview({ xml }: DrawioPreviewProps) {
 
   return (
     <div className="w-full overflow-hidden rounded-lg bg-white dark:bg-gray-800">
-      <div ref={containerRef} className="w-full" />
+      <div ref={containerRef} className="w-full">
+        {viewerUrl ? (
+          <iframe
+            src={viewerUrl}
+            title="Draw.io Preview"
+            className="w-full"
+            style={{ height: 420, border: 'none', borderRadius: 8 }}
+            onLoad={() => setLoading(false)}
+            onError={() => setError('Failed to load diagram viewer')}
+          />
+        ) : (
+          <div className="w-full h-64 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+            No diagram to preview
+          </div>
+        )}
+      </div>
     </div>
   );
 }

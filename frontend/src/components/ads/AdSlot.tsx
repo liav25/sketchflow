@@ -31,15 +31,15 @@ export default function AdSlot({
 }: AdSlotProps) {
   const insRef = useRef<HTMLModElement | null>(null);
 
-  const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+  const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT; // optional; global script carries client
   const enabled = (process.env.NEXT_PUBLIC_ADSENSE_ENABLED ?? "true") !== "false";
   const adtest = process.env.NODE_ENV !== "production" ? "on" : undefined;
   const shouldShowPlaceholder =
     showPlaceholder ?? (process.env.NODE_ENV !== "production");
 
   useEffect(() => {
-    // Only attempt to load if enabled, client is present, and slot is provided
-    if (!enabled || !client || !slot) return;
+    // Only attempt to load if enabled and a slot is provided
+    if (!enabled || !slot) return;
 
     try {
       const q = (window.adsbygoogle = (window.adsbygoogle || []) as unknown[]);
@@ -50,7 +50,7 @@ export default function AdSlot({
   }, [client, enabled, slot]);
 
   // If disabled or missing configuration, render a placeholder (optional)
-  if (!enabled || !client || !slot) {
+  if (!enabled || !slot) {
     if (!shouldShowPlaceholder) return null;
     return (
       <div
@@ -72,7 +72,8 @@ export default function AdSlot({
       ref={insRef}
       className={`adsbygoogle ${className ?? ""}`.trim()}
       style={{ display: "block", ...(style ?? {}) }}
-      data-ad-client={client}
+      // client is optional since the global loader in <head> already includes it
+      data-ad-client={client || undefined}
       data-ad-slot={slot}
       data-ad-format={format}
       data-full-width-responsive={responsive ? "true" : undefined}
