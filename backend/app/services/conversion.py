@@ -22,7 +22,7 @@ class ConversionService:
     
     
     async def convert(self, file_path: str, format: str, notes: str, job_id: str) -> Dict[str, Any]:
-        """Run the new 4-agent conversion pipeline using LangGraph."""
+        """Run the 3-agent conversion pipeline using LangGraph."""
         # Dev mock: short-circuit the pipeline if enabled
         if settings.mock_mode:
             if settings.mock_latency_ms and settings.mock_latency_ms > 0:
@@ -64,12 +64,11 @@ class ConversionService:
                 "job_id": job_id,
                 "processing_time": datetime.now().isoformat(),
                 "agents_used": ["mock"],
-                "confidence_score": 0.9,
             }
 
         self.logger.info(f"Conversion pipeline start job_id={job_id} format={format}")
 
-        # Initial state for new 4-agent graph
+        # Initial state for 3-agent graph
         state: Dict[str, Any] = {
             "file_path": file_path,
             "user_notes": notes,
@@ -77,22 +76,22 @@ class ConversionService:
             "job_id": job_id,
         }
 
-        # Execute the new 4-agent graph
+        # Execute the 3-agent graph
         final_state = await self.graph.run(state)
 
         self.logger.info(f"Conversion pipeline completed job_id={job_id}")
 
         # Extract results from final state
         processing_path = final_state.get("processing_path", [])
-        confidence_score = final_state.get("confidence_score", 0.5)
-        final_diagram = final_state.get("final_diagram", "")
-
-        # Return result in expected format
+        final_diagram = final_state.get("final_code") or final_state.get("diagram_code") or ""
+        # Return result in expected format with validation outcome
         return {
             "format": format,
             "code": final_diagram,
             "job_id": job_id,
             "processing_time": datetime.now().isoformat(),
             "agents_used": processing_path,
-            "confidence_score": confidence_score,
+            "validation_passed": final_state.get("validation_passed"),
+            "validation_skipped": final_state.get("validation_skipped"),
+            "issues": final_state.get("issues", []),
         }

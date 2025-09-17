@@ -1,44 +1,10 @@
 import os
 from typing import Tuple, Literal
-from enum import Enum
 
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 
 Provider = Literal["openai", "anthropic"]
-
-
-class TaskType(Enum):
-    """Different task types requiring optimized model selection."""
-    VISION = "vision"  # Image understanding and scene description
-    REASONING = "reasoning"  # Structure analysis and logical reasoning
-    CODE_GENERATION = "code_generation"  # Generating diagram code
-    SYNTHESIS = "synthesis"  # Selecting and refining final output
-
-
-# Task-optimized model defaults
-TASK_OPTIMIZED_MODELS = {
-    TaskType.VISION: {
-        "default": "gpt-4.1",  # GPT-4V for vision capabilities
-        "temperature": 0.1,
-        "fallback": "gpt-4.1"
-    },
-    TaskType.REASONING: {
-        "default": "claude-3-5-sonnet-20241022",  # Claude Sonnet for reasoning
-        "temperature": 0.0,
-        "fallback": "gpt-4.1"
-    },
-    TaskType.CODE_GENERATION: {
-        "default": "gpt-4.1",  # Good for code generation
-        "temperature": 0.1,
-        "fallback": "gpt-4.1"
-    },
-    TaskType.SYNTHESIS: {
-        "default": "claude-3-5-sonnet-20241022",  # Claude for synthesis and selection
-        "temperature": 0.0,
-        "fallback": "gpt-4.1"
-    }
-}
 
 
 def _infer_provider(model_name: str) -> Provider:
@@ -61,37 +27,6 @@ def _strip_prefix(model_name: str) -> str:
         if prefix in ("openai", "anthropic"):
             return rest
     return model_name
-
-
-def get_task_optimized_model(
-    task_type: TaskType,
-    *,
-    override_model: str | None = None,
-    override_temperature: float | None = None,
-) -> Tuple[object, Provider]:
-    """Get the optimal model for a specific task type.
-    
-    Args:
-        task_type: The type of task (vision, reasoning, code_generation, synthesis)
-        override_model: Optional model override from environment or config
-        override_temperature: Optional temperature override
-        
-    Returns:
-        Tuple of (model_client, provider)
-    """
-    task_config = TASK_OPTIMIZED_MODELS[task_type]
-    
-    # Use override model if provided, otherwise use task-optimized default
-    model_name = override_model or task_config["default"]
-    temperature = override_temperature if override_temperature is not None else task_config["temperature"]
-    
-    try:
-        return get_chat_model(model_name, temperature=temperature)
-    except Exception as e:
-        # Fallback to backup model if primary fails
-        fallback_model = task_config["fallback"]
-        print(f"Warning: Failed to initialize {model_name}, falling back to {fallback_model}: {e}")
-        return get_chat_model(fallback_model, temperature=temperature)
 
 
 def get_chat_model(
@@ -126,4 +61,3 @@ def get_chat_model(
 
     # Should never reach here due to typing/heuristics
     raise ValueError(f"Unsupported provider for model '{model_name}'")
-

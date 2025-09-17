@@ -1,5 +1,5 @@
 """
-Simplified prompt template management for the new 4-agent architecture.
+Prompt template management for the current SketchFlow pipeline.
 """
 
 from typing import Dict, Any
@@ -8,7 +8,7 @@ from string import Template
 
 class PromptTemplates:
     """
-    Simplified prompt templates for the new multi-perspective agent system.
+    Simplified prompt templates for the current pipeline.
     Each template is focused, short, and has a single clear purpose.
     """
 
@@ -28,151 +28,35 @@ class PromptTemplates:
         """
         return Template(template).safe_substitute(**kwargs)
 
-    # ===== NEW 4-AGENT ARCHITECTURE PROMPTS =====
-    
-    def get_scene_understanding_prompt(self, user_notes: str) -> str:
-        """Agent 1: Scene Understanding - Natural language description only."""
-        template = self._get_scene_understanding_template()
+    # ===== Describer prompt =====
+
+    def get_describer_prompt(self, user_notes: str) -> str:
+        """Describer agent prompt: produce JSON spec then a short narrative.
+
+        The model must output a top-level JSON object first (no preface), matching the schema:
+        {
+          "diagram_type": "flowchart|sequence|state|class|er|gantt|pie|gitgraph|network|org|custom",
+          "orientation": "TD|LR|BT|RL",
+          "elements": [
+            {"id": "...", "label": "...", "type": "start|process|decision|actor|db|queue|state|class|entity|note|group|swimlane|cloud|other", "group": "group-1?", "style": {"fillColor": "#RRGGBB?", "strokeColor": "#RRGGBB?", "textColor": "#RRGGBB?", "rounded": true, "dashed": false}}
+          ],
+          "edges": [
+            {"source": "id", "target": "id", "label": "?", "style": {"dotted": false, "bold": false}, "direction": "uni|bi"}
+          ],
+          "groups": [{"id": "...", "label": "...", "type": "group|swimlane", "orientation": "TD|LR|BT|RL"}],
+          "notes": "...",
+          "colors_used": ["#RRGGBB", "#..."]
+        }
+
+        Do not include absolute coordinates. Use orientation and grouping only.
+        After the JSON, add a short natural language summary of the scene.
+        """
+        template = self._get_describer_template()
         return self.format_prompt(template, user_notes=user_notes)
     
-    def get_structure_analysis_prompt(self, scene_description: str, user_notes: str) -> str:
-        """Agent 2: Structure Analysis - Abstract patterns and relationships."""
-        template = self._get_structure_analysis_template()
-        return self.format_prompt(template, scene_description=scene_description, user_notes=user_notes)
+    # (Removed legacy multi-candidate and synthesis prompts)
     
-    def get_multi_format_generation_prompt(
-        self, scene_description: str, structural_analysis: str, target_format: str
-    ) -> str:
-        """Agent 3: Multi-Format Generation - Multiple diagram candidates."""
-        template = self._get_multi_format_generation_template()
-        return self.format_prompt(
-            template,
-            scene_description=scene_description,
-            structural_analysis=structural_analysis,
-            target_format=target_format
-        )
-    
-    def get_synthesis_prompt(
-        self, 
-        scene_description: str, 
-        structural_analysis: str, 
-        candidates: str, 
-        target_format: str
-    ) -> str:
-        """Agent 4: Synthesis - Select and refine the best candidate."""
-        template = self._get_synthesis_template()
-        return self.format_prompt(
-            template,
-            scene_description=scene_description,
-            structural_analysis=structural_analysis,
-            candidates=candidates,
-            target_format=target_format
-        )
-    
-    # ===== SIMPLIFIED PROMPT TEMPLATES =====
-    
-    def _get_scene_understanding_template(self) -> str:
-        """Agent 1: Simple scene understanding prompt (30 lines vs old 150+)."""
-        return """You are analyzing a hand-drawn sketch or diagram. 
-
-Describe what you see in natural language, as if explaining to a colleague:
-
-- What type of diagram is this? (flowchart, network, org chart, sequence, etc.)
-- How many main elements are there?
-- How are they connected or related?
-- What seems to be the main flow or purpose?
-- Any text labels you can read?
-- Overall layout (left-to-right, top-to-bottom, circular, etc.)?
-
-Keep it conversational and natural. Don't try to be precise about coordinates or formatting.
-Focus on what you actually see, not what you think it should be.
-
-User notes: "$user_notes"
-
-Respond with a clear, natural description of the scene."""
-
-    def _get_structure_analysis_template(self) -> str:
-        """Agent 2: Abstract structure analysis prompt."""
-        return """Based on this scene description and user notes, identify the abstract structure:
-
-SCENE DESCRIPTION:
-$scene_description
-
-USER NOTES:
-$user_notes
-
-Analyze and output:
-
-1. **Element Types**: What kinds of elements are there? (start, process, decision, end, data, etc.)
-
-2. **Connection Patterns**: How do elements connect? (linear sequence, branching, loops, parallel paths, etc.)
-
-3. **Suggested Diagram Type**: What diagram type best fits this structure? (flowchart, sequence diagram, network diagram, etc.)
-
-4. **Key Relationships**: What are the most important connections or groupings?
-
-5. **Flow Direction**: What's the primary direction of information/process flow?
-
-Be concise and focus on the logical structure, not visual details.
-Think about the underlying relationships and patterns."""
-
-    def _get_multi_format_generation_template(self) -> str:
-        """Agent 3: Generate multiple diagram candidates."""
-        return """You are an expert diagram generator. Create 2-3 different approaches for representing this structure.
-
-SCENE DESCRIPTION:
-$scene_description
-
-STRUCTURAL ANALYSIS:
-$structural_analysis
-
-TARGET FORMAT: $target_format
-
-Generate 2-3 different $target_format diagrams that represent this structure. For each approach:
-
-1. **Approach 1**: [Brief description of this approach]
-[Diagram code here]
-
-2. **Approach 2**: [Brief description of this approach]  
-[Diagram code here]
-
-3. **Approach 3** (if applicable): [Brief description of this approach]
-[Diagram code here]
-
-For Mermaid: Use appropriate diagram types (flowchart TD/LR, sequenceDiagram, etc.)
-For Draw.io: Generate valid XML starting with <mxfile>
-
-Keep each approach distinct - try different layouts, styles, or emphasis.
-Include only valid diagram code with no markdown or explanations in the code blocks."""
-
-    def _get_synthesis_template(self) -> str:
-        """Agent 4: Select and refine the best approach."""
-        return """You are an expert at selecting and refining diagram solutions.
-
-SCENE DESCRIPTION:
-$scene_description
-
-STRUCTURAL ANALYSIS:
-$structural_analysis
-
-CANDIDATE APPROACHES:
-$candidates
-
-TARGET FORMAT: $target_format
-
-Your task:
-1. Review all the candidate approaches
-2. Select the one that best represents the original sketch
-3. Refine and polish it for final output
-
-Consider:
-- Accuracy to the original sketch
-- Clarity and readability  
-- Appropriate use of the target format
-- Completeness of information
-
-Output the final refined $target_format diagram code only.
-No explanations, no markdown, just the polished diagram code."""
+    # ===== Legacy 4-agent templates removed =====
 
     # ===== FORMAT-SPECIFIC GENERATION PROMPTS =====
 
@@ -194,6 +78,25 @@ REQUIREMENTS:
 
 Return only the Mermaid diagram code."""
         return self.format_prompt(template, description=description, instructions=instructions, suggested_type=suggested_type)
+
+    def get_mermaid_generation_prompt_from_spec(self, diagram_spec: dict[str, object]) -> str:
+        """Prompt for Mermaid generator from structured spec (code-only)."""
+        template = """You translate a structured diagram specification into valid Mermaid code.
+
+SPEC (JSON):
+$spec
+
+REQUIREMENTS:
+- Use the specified diagram_type and orientation when applicable
+- Map element types to appropriate Mermaid shapes and styling
+- Use subgraphs for groups or swimlanes
+- Apply colors using `style id fill:#hex,stroke:#hex,color:#hex` where provided
+- Output Mermaid code only (no markdown fences, no commentary)
+
+Return only the Mermaid diagram code."""
+        import json
+        spec_str = json.dumps(diagram_spec, ensure_ascii=False)
+        return self.format_prompt(template, spec=spec_str)
 
     def get_drawio_generation_prompt(self, description: str, instructions: str, style_hints: dict[str, object]) -> str:
         """Prompt for Draw.io generation agent (valid <mxfile> XML only)."""
@@ -230,3 +133,39 @@ Return only the Draw.io XML starting with <mxfile>."""
             default_shape=str(default_shape),
             connector_style=str(connector_style),
         )
+
+    def get_drawio_generation_prompt_from_spec(self, diagram_spec: dict[str, object]) -> str:
+        """Prompt for Draw.io generator from structured spec (valid <mxfile> XML only)."""
+        template = """You translate a structured diagram specification into valid Draw.io (diagrams.net) XML.
+
+SPEC (JSON):
+$spec
+
+REQUIREMENTS:
+- Output valid XML starting with <mxfile>, including <diagram> and <mxGraphModel>
+- Use auto-layout friendly geometry; avoid detailed absolute positioning
+- Encode colors/styles via `style` (fillColor, strokeColor, fontColor, rounded)
+- Use orthogonal connector style for edges
+- Output XML only (no markdown fences, no commentary)
+
+Return only the Draw.io XML starting with <mxfile>."""
+        import json
+        spec_str = json.dumps(diagram_spec, ensure_ascii=False)
+        return self.format_prompt(template, spec=spec_str)
+
+    def _get_describer_template(self) -> str:
+        return """You are a precise vision describer for hand-drawn or sketched diagrams.
+
+GOAL:
+1) Output a JSON object that matches the required schema exactly (no preface, no markdown)
+2) Then output a short human summary paragraph
+
+Rules:
+- Use orientation and grouping; do not infer absolute coordinates
+- If unsure about a field, use a sensible default or \"unknown\"
+- Incorporate user notes as hints but do not hallucinate missing structure
+
+USER NOTES (optional):
+$user_notes
+
+Now analyze the image and provide the JSON spec followed by a short narrative."""

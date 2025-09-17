@@ -2,7 +2,7 @@
 Mermaid Generation Agent - Specialized agent for Mermaid diagram generation.
 
 Generates Mermaid diagram code based on the vision analysis with Mermaid-specific
-optimizations, validation, and fallback handling.
+optimizations and lightweight validation (no internal fallbacks).
 """
 
 import os
@@ -102,28 +102,6 @@ class MermaidGenerationAgent:
         # Default to flowchart for most cases
         return 'flowchart TD'
     
-    def _generate_mermaid_fallback(self, description: str, notes: str) -> str:
-        """Generate a Mermaid-specific fallback diagram."""
-        # Determine diagram type based on content
-        content = (description + " " + notes).lower()
-        
-        if 'sequence' in content or 'interaction' in content:
-            return f"""sequenceDiagram
-    participant A as User
-    participant B as System
-    A->>B: Request
-    B-->>A: Response
-    Note over A,B: {notes[:50] if notes else 'Process completed'}"""
-        
-        # Default flowchart fallback
-        return f"""flowchart TD
-    A[Start] --> B[{notes[:30] if notes else 'Process'}]
-    B --> C{Decision}
-    C -->|Yes| D[Success]
-    C -->|No| E[Retry]
-    E --> B
-    D --> F[End]"""
-
     @traceable(name="mermaid_generation_node")
     async def generate_mermaid_diagram(self, state: SketchConversionState) -> SketchConversionState:
         """
@@ -135,31 +113,35 @@ class MermaidGenerationAgent:
         Returns:
             Updated state with generated Mermaid diagram code
         """
-        retry_count = int(state.get("retry_count", 0) or 0)
-        print(f"Mermaid Generation Agent: Creating Mermaid diagram for job {state['job_id']} (retry {retry_count})")
+        attempt_count = int(state.get("attempt_count", 0) or 0)
+        print(f"Mermaid Generation Agent: Creating Mermaid diagram for job {state['job_id']} (attempt {attempt_count + 1})")
         
         # Handle retry logic and corrections
         base_instructions = state.get('generation_instructions', '')
         corrections = state.get('corrections', '').strip()
         
-        # Build instructions with corrections for retries
-        if retry_count > 0 and corrections:
-            enhanced_instructions = f"{base_instructions}\n\nApply these validation instructions strictly (retry {retry_count + 1}):\n{corrections}"
+        # Build instructions with corrections for retries (apply from 2nd attempt onward)
+        if attempt_count > 0 and corrections:
+            enhanced_instructions = f"{base_instructions}\n\nApply these validation instructions strictly (attempt {attempt_count + 1}):\n{corrections}"
         else:
             enhanced_instructions = base_instructions
         
-        # Update retry count
-        state["retry_count"] = retry_count + 1
+        # Update attempt counter (0-based in state; store incremented value)
+        state["attempt_count"] = attempt_count + 1
         
-        # Get the Mermaid-specific generation prompt
-        prompt = self.prompt_templates.get_mermaid_generation_prompt(
-            description=state.get('sketch_description', ''),
-            instructions=enhanced_instructions,
-            suggested_type=self._detect_diagram_type(
-                state.get('sketch_description', ''),
-                enhanced_instructions
+        # Prefer structured spec if available; otherwise fall back to description
+        diagram_spec = state.get('diagram_spec') or None
+        if diagram_spec:
+            prompt = self.prompt_templates.get_mermaid_generation_prompt_from_spec(diagram_spec)
+        else:
+            prompt = self.prompt_templates.get_mermaid_generation_prompt(
+                description=state.get('sketch_description', ''),
+                instructions=enhanced_instructions,
+                suggested_type=self._detect_diagram_type(
+                    state.get('sketch_description', ''),
+                    enhanced_instructions
+                )
             )
-        )
         
         try:
             # Use the single configured client
@@ -177,14 +159,10 @@ class MermaidGenerationAgent:
             # Clean the generated code
             clean_code = self._clean_mermaid_code(diagram_code)
             
-            # Validate Mermaid syntax
+            # Validate Mermaid syntax (log only; no fallback replacement)
             is_valid, error_msg = self._validate_mermaid_syntax(clean_code)
             if not is_valid:
                 print(f"Mermaid Generation Agent: Syntax validation failed - {error_msg}")
-                clean_code = self._generate_mermaid_fallback(
-                    state.get('sketch_description', ''),
-                    state.get('notes', '')
-                )
             
             # Update state with generated diagram code
             state.update({
@@ -196,12 +174,9 @@ class MermaidGenerationAgent:
             
         except Exception as e:
             print(f"Mermaid Generation Agent Error: {str(e)}")
-            # Return state with fallback Mermaid diagram
-            fallback_code = self._generate_mermaid_fallback(
-                state.get('sketch_description', ''),
-                state.get('notes', '')
-            )
+            # Do not generate fallbacks here; leave code empty for validator
             state.update({
-                "diagram_code": fallback_code
+                "diagram_code": "",
+                "generation_error": str(e)
             })
             return state

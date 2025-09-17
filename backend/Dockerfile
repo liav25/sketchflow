@@ -2,10 +2,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (including Node.js for mermaid-cli)
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
+    ca-certificates \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Mermaid CLI globally
+RUN npm install -g @mermaid-js/mermaid-cli
+
+# Optional: set mmdc path for the validator
+ENV MMDC_BIN=/usr/local/bin/mmdc
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .

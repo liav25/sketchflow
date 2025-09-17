@@ -7,6 +7,7 @@ import ConversionForm from '@/components/ConversionForm';
 import DiagramPreview from '@/components/DiagramPreview';
 import { useAuth } from '@/components/AuthProvider';
 import UserMenu from '@/components/UserMenu';
+import ExamplesSwitcher from '@/components/ExamplesSwitcher';
 
 export type ConversionState = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
 export type DiagramFormat = 'mermaid' | 'drawio';
@@ -97,6 +98,13 @@ export default function Home() {
     });
   };
 
+  const handleViewExamples = () => {
+    document.getElementById('examples')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
   if (conversionState !== 'idle') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-white via-white to-brand-surface">
@@ -180,7 +188,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-20 pb-32 lg:pt-32 lg:pb-40 overflow-hidden">
+      <section className="relative pt-20 pb-8 lg:pt-24 lg:pb-12 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
             {/* Badge */}
@@ -190,19 +198,17 @@ export default function Home() {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-secondary-800 mb-6 animate-slide-up text-balance">
-              Transform Hand-Drawn
-              <span className="text-[#ef7722]"> Sketches </span>
-              into Professional Diagrams
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-secondary-800 mb-4 animate-slide-up text-balance">
+              Turn Hand‑Drawn <span className="text-[#ef7722]">Sketches</span> into Polished Diagrams
             </h1>
 
             {/* Subtitle */}
-            <p className="text-lg md:text-xl text-neutral-700 mb-12 max-w-3xl mx-auto leading-relaxed animate-slide-up text-balance">
+            <p className="text-lg md:text-xl text-neutral-700 mb-8 max-w-3xl mx-auto leading-relaxed animate-slide-up text-balance">
               Upload a photo of your sketch and watch our AI convert it into clean, professional Mermaid or Draw.io diagrams in seconds. No design skills required.
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 animate-scale-in">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10 animate-scale-in">
               <button 
                 onClick={handleGetStarted}
                 className="btn-primary text-lg px-6 py-3 sm:px-8 sm:py-4 group"
@@ -210,7 +216,7 @@ export default function Home() {
                 Get Started Free
                 <ArrowRightIcon className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </button>
-              <button className="btn-secondary text-lg px-6 py-3 sm:px-8 sm:py-4">
+              <button onClick={handleViewExamples} className="btn-secondary text-lg px-6 py-3 sm:px-8 sm:py-4">
                 View Examples
               </button>
             </div>
@@ -218,7 +224,7 @@ export default function Home() {
             {/* Trust Indicators */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-2xl mx-auto animate-fade-in">
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary-600 mb-1">30s</div>
+                <div className="text-2xl font-bold text-primary-600 mb-1">60s</div>
                 <div className="text-sm text-neutral-600">Average Conversion Time</div>
               </div>
               <div className="text-center">
@@ -227,7 +233,7 @@ export default function Home() {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary-600 mb-1">Free</div>
-                <div className="text-sm text-neutral-600">First Conversion</div>
+                <div className="text-sm text-neutral-600">And will remain free</div>
               </div>
             </div>
           </div>
@@ -240,10 +246,13 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Examples Section */}
+      <ExamplesSwitcher />
+
       {/* Features Section */}
-      <section id="features" className="py-24 bg-brand-surface backdrop-blur-sm">
+      <section id="features" className="py-12 bg-brand-surface backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <h2 className="text-4xl font-bold text-secondary-800 mb-4">
               Why Choose SketchFlow?
             </h2>
@@ -252,8 +261,8 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6 rounded-2xl bg-white backdrop-blur-sm border border-brand-muted shadow-elevation-2">
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="text-center p-5 rounded-2xl bg-white border border-neutral-200 shadow-elevation-1">
               <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <ClockIcon className="w-6 h-6 text-primary-600" />
               </div>
@@ -261,7 +270,7 @@ export default function Home() {
               <p className="text-neutral-700">Convert sketches to diagrams in under 30 seconds with our advanced AI processing.</p>
             </div>
 
-            <div className="text-center p-6 rounded-2xl bg-white backdrop-blur-sm border border-brand-muted shadow-elevation-2">
+            <div className="text-center p-5 rounded-2xl bg-white border border-neutral-200 shadow-elevation-1">
               <div className="w-12 h-12 bg-secondary-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <CheckCircleIcon className="w-6 h-6 text-secondary-600" />
               </div>
@@ -269,7 +278,7 @@ export default function Home() {
               <p className="text-neutral-700">Our AI understands complex diagrams with 99% accuracy, even from rough sketches.</p>
             </div>
 
-            <div className="text-center p-6 rounded-2xl bg-white backdrop-blur-sm border border-brand-muted shadow-elevation-2">
+            <div className="text-center p-5 rounded-2xl bg-white border border-neutral-200 shadow-elevation-1">
               <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <SparklesIcon className="w-6 h-6 text-primary-600" />
               </div>
@@ -281,7 +290,7 @@ export default function Home() {
       </section>
 
       {/* Upload Section */}
-      <section id="upload-section" className="py-24">
+      <section id="upload-section" className="py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-secondary-800 mb-4">

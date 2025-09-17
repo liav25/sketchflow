@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { 
   PhotoIcon, 
   CameraIcon, 
@@ -20,6 +20,8 @@ interface SketchUploadProps {
 export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
+  const [isMobile, setIsMobile] = useState(false);
+  const [hasCamera, setHasCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,17 +94,52 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
     cameraInputRef.current?.click();
   };
 
+  // Detect environment and enable paste-to-upload
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        setIsMobile(window.matchMedia('(pointer: coarse)').matches);
+      } catch {}
+
+      // Basic camera capability check
+      setHasCamera(!!(navigator.mediaDevices && (navigator.mediaDevices as any).getUserMedia));
+
+      const onPaste = (e: ClipboardEvent) => {
+        const items = e.clipboardData?.items || [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.kind === 'file') {
+            const file = item.getAsFile();
+            if (file) {
+              const validation = validateImageFile(file);
+              if (validation.isValid) {
+                setValidationError('');
+                onFileSelect(file);
+                return;
+              } else {
+                setValidationError(validation.error);
+              }
+            }
+          }
+        }
+      };
+
+      window.addEventListener('paste', onPaste);
+      return () => window.removeEventListener('paste', onPaste);
+    }
+  }, [onFileSelect]);
+
   return (
     <div className="w-full max-w-3xl mx-auto animate-slide-up">
       {/* Main Upload Area */}
       <div
-        className={`relative border-2 border-dashed rounded-3xl p-8 md:p-12 text-center transition-all duration-400 group ${
+        className={`relative border-2 border-dashed rounded-2xl p-8 md:p-10 text-center transition-all duration-400 group ${
           isDragOver
-            ? 'border-primary-400 bg-primary-50/50 scale-102'
+            ? 'border-primary-400 bg-primary-50/50 ring-4 ring-primary-200 shadow-elevation-4'
             : validationError
             ? 'border-error-300 bg-error-50/30'
-            : 'border-brand-muted hover:border-primary-400 bg-brand-surface'
-        } backdrop-blur-sm shadow-elevation-2 hover:shadow-elevation-4`}
+            : 'border-brand-muted hover:border-primary-400 bg-white'
+        } backdrop-blur-sm shadow-elevation-1 hover:shadow-elevation-2`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -146,11 +183,11 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-6">
           {/* File Upload Button */}
           <button
             onClick={openFileDialog}
-            className="btn-primary text-lg px-8 py-4 group shadow-elevation-2 hover:shadow-elevation-4"
+            className={`${isMobile && hasCamera ? 'btn-secondary' : 'btn-primary'} text-lg px-7 py-4 group shadow-elevation-2 hover:shadow-elevation-4`}
             disabled={isDragOver}
           >
             <ArrowUpTrayIcon className="h-6 w-6 mr-2 transition-transform group-hover:-translate-y-0.5" />
@@ -158,15 +195,22 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
           </button>
 
           {/* Camera Button */}
-          <button
-            onClick={openCamera}
-            className="btn-warm text-lg px-8 py-4 group shadow-elevation-1 hover:shadow-elevation-2"
-            disabled={isDragOver}
-          >
-            <CameraIcon className="h-6 w-6 mr-2 transition-transform group-hover:scale-110" />
-            <span className="sm:hidden">Take Photo</span>
-            <span className="hidden sm:inline">Use Camera</span>
-          </button>
+          {(hasCamera || isMobile) && (
+            <button
+              onClick={openCamera}
+              className={`${isMobile && hasCamera ? 'btn-primary' : 'btn-ghost'} text-lg px-7 py-4 group shadow-elevation-1 hover:shadow-elevation-2`}
+              disabled={isDragOver}
+            >
+              <CameraIcon className="h-6 w-6 mr-2 transition-transform group-hover:scale-110" />
+              <span className="sm:hidden">Take Photo</span>
+              <span className="hidden sm:inline">Use Camera</span>
+            </button>
+          )}
+        </div>
+
+        {/* Paste helper */}
+        <div className="mb-6 text-sm text-neutral-600">
+          Tip: you can also paste an image here (⌘V / Ctrl+V)
         </div>
 
         {/* File Type Info */}
@@ -193,12 +237,12 @@ export default function SketchUpload({ onFileSelect }: SketchUploadProps) {
           className="hidden"
         />
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary-50/30 via-transparent to-secondary-50/30 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        {/* Subtle hover overlay */}
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary-50/20 via-transparent to-secondary-50/20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       </div>
 
       {/* Tips Section */}
-      <div className="mt-8 bg-brand-surface backdrop-blur-sm rounded-2xl p-6 shadow-elevation-1 border border-brand-muted">
+      <div className="mt-4 bg-brand-surface backdrop-blur-sm rounded-2xl p-6 shadow-elevation-1 border border-brand-muted">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
             <LightBulbIcon className="w-5 h-5 text-primary-600" />

@@ -2,7 +2,7 @@
 Draw.io Generation Agent - Specialized agent for Draw.io diagram generation.
 
 Generates Draw.io XML diagram code based on the vision analysis with Draw.io-specific
-optimizations, validation, and fallback handling.
+optimizations and lightweight validation (no internal fallbacks).
 """
 
 import os
@@ -155,67 +155,7 @@ class DrawioGenerationAgent:
             'connector_style': 'orthogonalEdgeStyle'
         }
     
-    def _generate_drawio_fallback(self, description: str, notes: str) -> str:
-        """Generate a Draw.io-specific fallback diagram."""
-        # Determine layout based on content
-        content = (description + " " + notes).lower()
-        
-        if 'network' in content or 'server' in content:
-            return '''<mxfile host="app.diagrams.net">
-  <diagram name="Page-1">
-    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1">
-      <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="2" value="Client" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="80" width="120" height="60" as="geometry"/>
-        </mxCell>
-        <mxCell id="3" value="Server" style="shape=cube;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="240" y="80" width="120" height="80" as="geometry"/>
-        </mxCell>
-        <mxCell id="4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="2" target="3">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
-        <mxCell id="5" value="''' + (notes[:50] if notes else 'Network Connection') + '''" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
-          <mxGeometry x="140" y="40" width="120" height="30" as="geometry"/>
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
-</mxfile>'''
-        
-        # Default flowchart fallback
-        return '''<mxfile host="app.diagrams.net">
-  <diagram name="Page-1">
-    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1">
-      <root>
-        <mxCell id="0"/>
-        <mxCell id="1" parent="0"/>
-        <mxCell id="2" value="Start" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="160" y="40" width="80" height="40" as="geometry"/>
-        </mxCell>
-        <mxCell id="3" value="''' + (notes[:30] if notes else 'Process') + '''" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="140" y="120" width="120" height="60" as="geometry"/>
-        </mxCell>
-        <mxCell id="4" value="Decision" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="160" y="220" width="80" height="80" as="geometry"/>
-        </mxCell>
-        <mxCell id="5" value="End" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="160" y="340" width="80" height="40" as="geometry"/>
-        </mxCell>
-        <mxCell id="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="2" target="3">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
-        <mxCell id="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="3" target="4">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
-        <mxCell id="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="4" target="5">
-          <mxGeometry relative="1" as="geometry"/>
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
-</mxfile>'''
+    
 
     @traceable(name="drawio_generation_node")
     async def generate_drawio_diagram(self, state: SketchConversionState) -> SketchConversionState:
@@ -228,8 +168,8 @@ class DrawioGenerationAgent:
         Returns:
             Updated state with generated Draw.io XML diagram code
         """
-        retry_count = int(state.get("retry_count", 0) or 0)
-        print(f"Draw.io Generation Agent: Creating Draw.io diagram for job {state['job_id']} (retry {retry_count})")
+        attempt_count = int(state.get("attempt_count", 0) or 0)
+        print(f"Draw.io Generation Agent: Creating Draw.io diagram for job {state['job_id']} (attempt {attempt_count + 1})")
         
         # Detect diagram style preferences
         diagram_style = self._detect_diagram_style(
@@ -240,20 +180,24 @@ class DrawioGenerationAgent:
         # Handle retry logic and corrections similar to Mermaid agent
         base_instructions = state.get('generation_instructions', '')
         corrections = state.get('corrections', '').strip()
-        if retry_count > 0 and corrections:
-            enhanced_instructions = f"{base_instructions}\n\nApply these validation instructions strictly (retry {retry_count + 1}):\n{corrections}"
+        if attempt_count > 0 and corrections:
+            enhanced_instructions = f"{base_instructions}\n\nApply these validation instructions strictly (attempt {attempt_count + 1}):\n{corrections}"
         else:
             enhanced_instructions = base_instructions
 
-        # Increment retry count for the loop
-        state["retry_count"] = retry_count + 1
+        # Increment attempt counter for the loop
+        state["attempt_count"] = attempt_count + 1
 
-        # Get the Draw.io-specific generation prompt
-        prompt = self.prompt_templates.get_drawio_generation_prompt(
-            description=state.get('sketch_description', ''),
-            instructions=enhanced_instructions,
-            style_hints=diagram_style
-        )
+        # Prefer structured spec if available; otherwise fall back to description
+        diagram_spec = state.get('diagram_spec') or None
+        if diagram_spec:
+            prompt = self.prompt_templates.get_drawio_generation_prompt_from_spec(diagram_spec)
+        else:
+            prompt = self.prompt_templates.get_drawio_generation_prompt(
+                description=state.get('sketch_description', ''),
+                instructions=enhanced_instructions,
+                style_hints=diagram_style
+            )
         
         try:
             # Use the single configured client
@@ -271,14 +215,10 @@ class DrawioGenerationAgent:
             # Clean the generated code
             clean_code = self._clean_drawio_code(diagram_code)
             
-            # Validate Draw.io XML
+            # Validate Draw.io XML (log only; no fallback replacement)
             is_valid, error_msg = self._validate_drawio_xml(clean_code)
             if not is_valid:
                 print(f"Draw.io Generation Agent: XML validation failed - {error_msg}")
-                clean_code = self._generate_drawio_fallback(
-                    state.get('sketch_description', ''),
-                    state.get('notes', '')
-                )
             
             # Update state with generated diagram code
             state.update({
@@ -290,12 +230,9 @@ class DrawioGenerationAgent:
             
         except Exception as e:
             print(f"Draw.io Generation Agent Error: {str(e)}")
-            # Return state with fallback Draw.io diagram
-            fallback_code = self._generate_drawio_fallback(
-                state.get('sketch_description', ''),
-                state.get('notes', '')
-            )
+            # Do not generate fallbacks here; leave code empty for validator
             state.update({
-                "diagram_code": fallback_code
+                "diagram_code": "",
+                "generation_error": str(e)
             })
             return state
