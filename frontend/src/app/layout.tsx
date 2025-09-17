@@ -39,6 +39,13 @@ export default function RootLayout({
             crossOrigin="anonymous"
           />
         ) : null}
+        {/* Optional: helps Google associate your site with your AdSense account */}
+        <meta name="google-adsense-account" content="ca-pub-9317202877406769" />
+        {/* Perf hints for Auto ads */}
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+        <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net" />
       </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
         <AuthProvider>{children}</AuthProvider>
