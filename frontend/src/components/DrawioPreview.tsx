@@ -6,65 +6,133 @@ interface DrawioPreviewProps {
   xml: string;
 }
 
+declare global {
+  interface Window {
+    GraphViewer?: {
+      createViewerForElement: (el: Element, cb?: (viewer: unknown) => void) => void;
+      processElements: (cls?: string) => void;
+    };
+    onDrawioViewerLoad?: () => void;
+  }
+}
+
+// Load the official viewer script once
+function loadDrawioViewer(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') return resolve();
+    if (window.GraphViewer) return resolve();
+
+    const existing = document.getElementById('drawio-viewer-script') as HTMLScriptElement | null;
+    if (existing && window.GraphViewer) return resolve();
+
+    const script = existing ?? document.createElement('script');
+    if (!existing) {
+      script.id = 'drawio-viewer-script';
+      script.src = 'https://viewer.diagrams.net/js/viewer-static.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Draw.io viewer'));
+  });
+}
+
+// Helper: convert Uint8Array to base64 without stack overflow on large arrays
+const uint8ToBase64 = (uint8: Uint8Array): string => {
+  const CHUNK_SIZE = 0x8000;
+  const chunks: string[] = [];
+  for (let i = 0; i < uint8.length; i += CHUNK_SIZE) {
+    const chunk = uint8.subarray(i, i + CHUNK_SIZE);
+    const chunkArr: number[] = Array.from(chunk);
+    chunks.push(String.fromCharCode(...chunkArr));
+  }
+  return btoa(chunks.join(''));
+};
+
 export default function DrawioPreview({ xml }: DrawioPreviewProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const hostRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
 
-  // Helper: convert Uint8Array to base64 without stack overflow on large arrays
-  const uint8ToBase64 = (uint8: Uint8Array): string => {
-    const CHUNK_SIZE = 0x8000;
-    const chunks: string[] = [];
-    for (let i = 0; i < uint8.length; i += CHUNK_SIZE) {
-      const chunk = uint8.subarray(i, i + CHUNK_SIZE);
-      const chunkArr: number[] = Array.from(chunk);
-      chunks.push(String.fromCharCode(...chunkArr));
-    }
-    return btoa(chunks.join(''));
-  };
+  // Prepare fallback Open-in-Draw.io URL
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!xml) return setFallbackUrl(null);
+        const { deflateRaw } = await import('pako');
+        const deflated = deflateRaw(new TextEncoder().encode(xml));
+        const b64 = uint8ToBase64(deflated);
+        const openUrl = `https://app.diagrams.net/#R${b64}`;
+        if (!cancelled) setFallbackUrl(openUrl);
+      } catch {
+        if (!cancelled) setFallbackUrl(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [xml]);
 
-  // Build viewer and fallback URLs (#R deflateRaw+base64 payload)
+  // Initialize the viewer with data-mxgraph per jgraph/drawio-integration
   useEffect(() => {
     let cancelled = false;
     setError(null);
     setLoading(true);
 
-    (async () => {
+    const render = async () => {
       try {
-        if (!xml) {
-          if (!cancelled) {
-            setViewerUrl(null);
-            setFallbackUrl(null);
-            setLoading(false);
-          }
+        if (!hostRef.current) return;
+        // Clear previous content
+        hostRef.current.innerHTML = '';
+
+        if (!xml || xml.trim().length === 0) {
+          if (!cancelled) setLoading(false);
           return;
         }
-        const { deflateRaw } = await import('pako');
-        const deflated = deflateRaw(new TextEncoder().encode(xml));
-        const b64 = uint8ToBase64(deflated);
 
-        // Read-only viewer (no postMessage needed)
-        const url = `https://viewer.diagrams.net/?embed=1&spin=1&proto=json&nav=1#R${b64}`;
-        const openUrl = `https://app.diagrams.net/#R${b64}`;
+        await loadDrawioViewer();
 
-        if (!cancelled) {
-          setViewerUrl(url);
-          setFallbackUrl(openUrl);
-        }
+        // Create the mxgraph container and attach config
+        const el = document.createElement('div');
+        el.className = 'mxgraph';
+        el.style.width = '100%';
+        el.style.minHeight = '420px';
+        el.style.borderRadius = '8px';
+        el.style.overflow = 'hidden';
+
+        const config = {
+          // Enable simple navigation controls
+          nav: 1,
+          resize: 1,
+          toolbar: 0,
+          lightbox: 0,
+          'auto-fit': 1,
+          // Provide raw XML; the viewer parses it internally
+          xml,
+        } as const;
+
+        el.setAttribute('data-mxgraph', JSON.stringify(config));
+        hostRef.current.appendChild(el);
+
+        if (!window.GraphViewer) throw new Error('Draw.io viewer not available');
+
+        // Render only this element
+        window.GraphViewer.createViewerForElement(el, () => {
+          if (!cancelled) setLoading(false);
+        });
       } catch (e) {
         if (!cancelled) {
-          const message = e instanceof Error ? e.message : 'Failed to prepare diagram preview';
+          const message = e instanceof Error ? e.message : 'Failed to render diagram';
           setError(message);
-          setViewerUrl(null);
-          setFallbackUrl(null);
+          setLoading(false);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
-    })();
+    };
 
+    render();
     return () => {
       cancelled = true;
     };
@@ -80,15 +148,8 @@ export default function DrawioPreview({ xml }: DrawioPreviewProps) {
             </svg>
           </div>
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              Preview unavailable
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {error.includes('timed out') 
-                ? 'The diagram preview took too long to load'
-                : 'Unable to load the diagram preview'
-              }
-            </p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Preview unavailable</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{error}</p>
           </div>
           <div className="space-y-2">
             {fallbackUrl && (
@@ -104,9 +165,7 @@ export default function DrawioPreview({ xml }: DrawioPreviewProps) {
                 Open in Draw.io
               </a>
             )}
-            <p className="text-xs text-gray-400">
-              View and edit your diagram
-            </p>
+            <p className="text-xs text-gray-400">View and edit your diagram</p>
           </div>
         </div>
       </div>
@@ -119,12 +178,8 @@ export default function DrawioPreview({ xml }: DrawioPreviewProps) {
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Loading diagram preview...
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              This may take a few seconds
-            </p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Loading diagram preview...</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">This may take a few seconds</p>
           </div>
           <div className="w-32 h-1 bg-gray-200 dark:bg-gray-600 rounded-full mx-auto overflow-hidden">
             <div className="h-full bg-blue-600 rounded-full animate-pulse"></div>
@@ -134,24 +189,17 @@ export default function DrawioPreview({ xml }: DrawioPreviewProps) {
     );
   }
 
+  if (!xml || xml.trim().length === 0) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        No diagram to preview
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-hidden rounded-lg bg-white dark:bg-gray-800">
-      <div ref={containerRef} className="w-full">
-        {viewerUrl ? (
-          <iframe
-            src={viewerUrl}
-            title="Draw.io Preview"
-            className="w-full"
-            style={{ height: 420, border: 'none', borderRadius: 8 }}
-            onLoad={() => setLoading(false)}
-            onError={() => setError('Failed to load diagram viewer')}
-          />
-        ) : (
-          <div className="w-full h-64 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
-            No diagram to preview
-          </div>
-        )}
-      </div>
+      <div ref={hostRef} className="w-full" />
     </div>
   );
 }
