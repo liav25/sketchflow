@@ -91,7 +91,15 @@ const DrawioPreview = dynamic(() => import('./DrawioPreview'), {
   ),
 });
 
-// No dedicated dynamic preview for UML (PlantUML); show code-only
+// Dynamically load the PlantUML preview to avoid SSR issues
+const PlantUMLPreview = dynamic(() => import('./PlantUMLPreview'), {
+  ssr: false,
+  loading: () => (
+    <div className="text-center p-8">
+      <div className="animate-pulse text-neutral-600">Loading UML preview...</div>
+    </div>
+  ),
+});
 
 interface DiagramPreviewProps {
   format: DiagramFormat;
@@ -228,10 +236,11 @@ export default function DiagramPreview({
     }
   };
 
+  const codeTrimmed = (diagramCode || '').trim();
   const stats = {
-    lines: diagramCode.split('\n').length,
+    lines: codeTrimmed ? codeTrimmed.split('\n').length : 0,
     characters: diagramCode.length,
-    words: diagramCode.split(/\s+/).length
+    words: codeTrimmed ? codeTrimmed.split(/\s+/).filter(Boolean).length : 0,
   };
 
   return (
@@ -332,10 +341,8 @@ export default function DiagramPreview({
                       <DrawioPreview xml={diagramCode} />
                     </div>
                   ) : (
-                    <div className="w-full">
-                      <pre className="whitespace-pre-wrap text-sm leading-6">
-{diagramCode}
-                      </pre>
+                    <div className="w-full max-h-[600px] overflow-auto flex items-start justify-center">
+                      <PlantUMLPreview code={diagramCode} />
                     </div>
                   )}
                 </div>

@@ -12,6 +12,7 @@
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.45.0",
     "@tailwindcss/postcss": "^4",
+    "plantuml-encoder": "^1.4.0",
     "mermaid": "^10.9.1",
     "next": "15.5.3",
     "pako": "^2.1.0",

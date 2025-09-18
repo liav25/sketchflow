@@ -11,6 +11,7 @@ function originFrom(url?: string) {
 }
 
 const apiOrigin = originFrom(process.env.NEXT_PUBLIC_API_URL)
+const plantumlOrigin = originFrom(process.env.NEXT_PUBLIC_PLANTUML_SERVER || 'https://www.plantuml.com')
 
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -35,6 +36,8 @@ const scriptSrc = [
 
 const imgSrc = [
   "img-src 'self' data: blob:",
+  // Allow PlantUML server images (default or custom)
+  ...(plantumlOrigin ? [plantumlOrigin] : []),
   ...(adsEnabled ? [
     'https://*.googlesyndication.com',
     'https://*.doubleclick.net',
