@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
@@ -87,6 +88,11 @@ def _make_engine() -> AsyncEngine:
     except Exception:
         pass
 
+    # For Supabase transaction pooler, disable prepared statements and use NullPool
+    if "pooler.supabase.com:6543" in url:
+        connect_args["statement_cache_size"] = 0
+        return create_async_engine(url, echo=False, future=True, connect_args=connect_args, poolclass=NullPool)
+    
     return create_async_engine(url, echo=False, future=True, connect_args=connect_args)
 
 
