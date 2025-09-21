@@ -20,9 +20,7 @@ def get_feedback_table_name():
         return "feedbacks_dev" if app_env == "development" else "feedbacks"
 
 class Feedback(Base):
-    # For now, always use dev table for local development
-    # Change this to get_feedback_table_name() when environment loading is fixed
-    __tablename__ = "feedbacks_dev"
+    __tablename__ = get_feedback_table_name()
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

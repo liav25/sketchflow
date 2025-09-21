@@ -21,9 +21,7 @@ def get_table_name():
         return "request_logs_dev" if app_env == "development" else "request_logs"
 
 class RequestLog(Base):
-    # For now, always use dev table for local development
-    # Change this to get_table_name() when environment loading is fixed
-    __tablename__ = "request_logs_dev"
+    __tablename__ = get_table_name()
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
