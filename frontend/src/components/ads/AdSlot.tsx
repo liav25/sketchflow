@@ -34,8 +34,9 @@ export default function AdSlot({
   const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT; // optional; global script carries client
   const enabled = (process.env.NEXT_PUBLIC_ADSENSE_ENABLED ?? "true") !== "false";
   const adtest = process.env.NODE_ENV !== "production" ? "on" : undefined;
-  const shouldShowPlaceholder =
-    showPlaceholder ?? (process.env.NODE_ENV !== "production");
+  // Do not show placeholders by default; render nothing if ads are disabled
+  // or slot is missing, unless explicitly requested via `showPlaceholder`.
+  const shouldShowPlaceholder = showPlaceholder ?? false;
 
   useEffect(() => {
     // Only attempt to load if enabled and a slot is provided

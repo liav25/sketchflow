@@ -8,6 +8,8 @@ import uuid
 from datetime import datetime
 
 from app.core.config import settings
+from app.core.db import engine, Base
+from app.models.request_log import RequestLog
 from app.services.conversion import ConversionService
 from app.core.logging_config import configure_logging, get_logger
 from app.core.auth import get_current_user, get_current_user_optional
@@ -18,6 +20,17 @@ configure_logging()
 logger = get_logger("sketchflow.app")
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
+
+
+# Database: create tables on startup (simple bootstrap; replace with Alembic later)
+@app.on_event("startup")
+async def on_startup_create_tables():
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        get_logger("sketchflow.db").info("Database tables ensured (create_all)")
+    except Exception:
+        get_logger("sketchflow.db").exception("Failed to create database tables on startup")
 
 # CORS middleware (dev-friendly): allow-all when DEBUG is true
 dev_mode = bool(settings.debug)
@@ -91,13 +104,144 @@ async def log_requests(request: Request, call_next):
         get_logger("sketchflow.request").info(
             f"{request.method} {request.url.path} -> {response.status_code} in {duration_ms}ms",
         )
+
+        # Persist comprehensive request log asynchronously to the database
+        try:
+            import asyncio
+            from app.core.db import SessionLocal
+
+            # Capture response data if available
+            response_data = getattr(request.state, "response_data", None)
+
+            async def _persist():
+                try:
+                    async with SessionLocal() as session:
+                        await _save_request_log(session=session,
+                                                 method=request.method,
+                                                 path=request.url.path,
+                                                 status_code=response.status_code,
+                                                 duration_ms=duration_ms,
+                                                 request=request,
+                                                 error=None,
+                                                 response_data=response_data)
+                except Exception as e:
+                    get_logger("sketchflow.request").error(f"Failed to persist request log: {e}")
+
+            # Create the task without awaiting to avoid blocking the response
+            task = asyncio.create_task(_persist())
+            # Don't await the task, just let it run in background
+            
+        except Exception as e:
+            get_logger("sketchflow.request").error(f"Failed to schedule request log persistence: {e}")
+
         return response
     except Exception as e:
         duration_ms = int((time.time() - start) * 1000)
         get_logger("sketchflow.request").exception(
             f"Unhandled error for {request.method} {request.url.path} after {duration_ms}ms: {e}"
         )
+        # Attempt to persist error case as well
+        try:
+            import asyncio
+            from app.core.db import SessionLocal
+            response_data = {"error": str(e), "error_type": type(e).__name__}
+            
+            async def _persist_error():
+                try:
+                    async with SessionLocal() as session:
+                        await _save_request_log(session=session,
+                                                 method=request.method,
+                                                 path=request.url.path,
+                                                 status_code=500,
+                                                 duration_ms=duration_ms,
+                                                 request=request,
+                                                 error=str(e)[:500],
+                                                 response_data=response_data)
+                except Exception as persist_error:
+                    get_logger("sketchflow.request").error(f"Failed to persist error log: {persist_error}")
+                    
+            asyncio.create_task(_persist_error())
+        except Exception:
+            pass
         raise
+
+
+async def _save_request_log(
+    *,
+    session,
+    method: str,
+    path: str,
+    status_code: int,
+    duration_ms: int,
+    request: Request,
+    error: str | None,
+    response_data: dict | None = None,
+):
+    try:
+        # Collect context set by endpoints
+        job_id = getattr(request.state, "job_id", None)
+        user_id = getattr(request.state, "user_id", None)
+        fmt = getattr(request.state, "format", None)
+        notes = getattr(request.state, "notes", None)
+        file_info = getattr(request.state, "file_info", {})
+        
+        # User and network context
+        client_ip = request.headers.get("x-forwarded-for") or request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
+        
+        # Build comprehensive request data
+        request_data = {
+            "headers": dict(request.headers),
+            "query_params": dict(request.query_params),
+            "path_params": getattr(request, "path_params", {}),
+            "request_id": request.headers.get("x-request-id"),
+            "content_length": int(request.headers.get("content-length") or 0),
+            "cookies": dict(request.cookies),
+        }
+        
+        # File upload information if available
+        if file_info:
+            request_data["file_upload"] = file_info
+        
+        # Conversion parameters if available
+        if fmt:
+            request_data["conversion"] = {
+                "format": fmt,
+                "notes": notes,
+                "job_id": job_id,
+            }
+        
+        # Additional context for analysis
+        extra = {
+            "endpoint": path,
+            "has_file_upload": bool(file_info),
+            "is_conversion_request": path.startswith("/api/convert"),
+            "user_authenticated": bool(user_id),
+        }
+
+        log = RequestLog(
+            method=method,
+            path=path,
+            status_code=status_code,
+            duration_ms=duration_ms,
+            job_id=job_id,
+            user_id=user_id,
+            format=fmt,
+            client_ip=client_ip,
+            user_agent=user_agent,
+            file_name=file_info.get("filename") if file_info else None,
+            file_size=file_info.get("size") if file_info else None,
+            file_type=file_info.get("content_type") if file_info else None,
+            notes=notes,
+            error=error,
+            request_data=request_data,
+            response_data=response_data,
+            extra=extra,
+        )
+        session.add(log)
+        await session.commit()
+    except Exception:
+        get_logger("sketchflow.request").exception("Failed to persist RequestLog")
 
 
 # Initialize conversion service
@@ -134,9 +278,19 @@ async def convert_sketch(
     notes: str = Form(""),
     mock: bool = Form(False),
     current_user=Depends(get_current_user_optional),
+    request: Request = None,
 ):
-    # Dev mode: skip file type/size validation to avoid friction
+    # Capture file information for logging
     file_content = await file.read()
+    file_size = len(file_content)
+    file_info = {
+        "filename": file.filename,
+        "size": file_size,
+        "content_type": file.content_type,
+        "size_mb": round(file_size / (1024 * 1024), 2),
+    }
+    
+    # Dev mode: skip file type/size validation to avoid friction
     if not dev_mode:
         if file.content_type not in settings.allowed_file_types:
             raise HTTPException(
@@ -144,7 +298,6 @@ async def convert_sketch(
                 detail=f"Invalid file type. Allowed types: {', '.join(settings.allowed_file_types)}",
             )
 
-        file_size = len(file_content)
         max_size = settings.max_file_size_mb * 1024 * 1024
         if file_size > max_size:
             raise HTTPException(
@@ -167,6 +320,22 @@ async def convert_sketch(
                 notes=notes,
                 job_id=job_id,
             )
+            
+            # Attach response data for logging middleware (mock mode)
+            if request is not None:
+                try:
+                    request.state.response_data = {
+                        "job_id": job_id,
+                        "status": "completed",
+                        "result": result,
+                        "conversion_successful": True,
+                        "mock_mode": True,
+                        "result_type": format,
+                        "code_length": len(result.get("code", "")) if result and result.get("code") else 0,
+                    }
+                except Exception:
+                    pass
+                    
             return ConversionResponse(job_id=job_id, status="completed", result=result)
         
         # Save uploaded file
@@ -179,6 +348,17 @@ async def convert_sketch(
         with open(file_path, "wb") as f:
             f.write(file_content)
         
+        # Attach context for logging middleware
+        if request is not None:
+            try:
+                request.state.job_id = job_id
+                request.state.user_id = (current_user or {}).get("id") if current_user else None
+                request.state.format = format
+                request.state.notes = notes
+                request.state.file_info = file_info
+            except Exception:
+                pass
+
         # Process with conversion service
         result = await conversion_service.convert(
             file_path=file_path,
@@ -200,25 +380,57 @@ async def convert_sketch(
         except Exception:
             get_logger("sketchflow.result_store").exception("Failed to persist conversion result")
 
-        return ConversionResponse(
+        # Prepare response data for logging
+        response_obj = ConversionResponse(
             job_id=job_id,
             status="completed",
             result=result
         )
         
+        # Attach response data for logging middleware
+        if request is not None:
+            try:
+                request.state.response_data = {
+                    "job_id": job_id,
+                    "status": "completed",
+                    "result": result,
+                    "conversion_successful": True,
+                    "result_type": result.get("format", format) if result else None,
+                    "code_length": len(result.get("code", "")) if result and result.get("code") else 0,
+                }
+            except Exception:
+                pass
+        
+        return response_obj
+        
     except Exception as e:
+        error_job_id = job_id if 'job_id' in locals() else str(uuid.uuid4())
+        
+        # Attach error response data for logging middleware
+        if request is not None:
+            try:
+                request.state.response_data = {
+                    "job_id": error_job_id,
+                    "status": "failed",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "conversion_successful": False,
+                }
+            except Exception:
+                pass
+        
         return ConversionResponse(
-            job_id=job_id if 'job_id' in locals() else str(uuid.uuid4()),
+            job_id=error_job_id,
             status="failed",
             error=str(e)
         )
 
 
 @app.get("/api/conversions/{job_id}/code", response_model=CodeResponse)
-async def get_conversion_code(job_id: str, user=Depends(get_current_user)):
-    """Return diagram code for a conversion job. Authentication required.
+async def get_conversion_code(job_id: str, user=Depends(get_current_user_optional)):
+    """Return diagram code for a conversion job. Authentication optional.
 
-    This enforces the product rule: only registered users can copy code.
+    Anonymous users can now retrieve code without signing in.
     """
     item = load_result(job_id)
     if not item:

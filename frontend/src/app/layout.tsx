@@ -48,7 +48,27 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://googleads.g.doubleclick.net" />
       </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          {/* Site-wide footer */}
+          <footer className="py-10">
+            <div className="container mx-auto px-4 text-center">
+              <a
+                href="https://www.buymeacoffee.com/liav25"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Buy me a coffee"
+                className="inline-block"
+              >
+                <img
+                  src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+                  alt="Buy Me A Coffee"
+                  style={{ height: 60, width: 217 }}
+                />
+              </a>
+            </div>
+          </footer>
+        </AuthProvider>
       </body>
     </html>
   );

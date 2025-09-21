@@ -24,7 +24,7 @@ export default function ExamplesGallery() {
               <code className="mx-1 px-1 py-0.5 rounded bg-neutral-100 text-neutral-800">/frontend/src/data/examples.ts</code>.
             </p>
             <p className="mt-3 text-neutral-600 text-sm">
-              Use a slug and name files like <span className="font-mono">slug-before.jpg</span> and <span className="font-mono">slug-after.jpg</span>.
+              Use a slug and name files like <span className="font-mono">slug-before.webp</span> / <span className="font-mono">slug-after.webp</span> or <span className="font-mono">slug-before.svg</span> / <span className="font-mono">slug-after.svg</span>.
             </p>
           </div>
         ) : (
@@ -48,11 +48,18 @@ export default function ExamplesGallery() {
                       alt={`${ex.title} — before`}
                       className="h-full w-full object-cover"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        const img = e.currentTarget as HTMLImageElement;
+                        const tried = img.dataset.fallbackTried === '1';
+                        if (!tried && img.src.endsWith('.svg')) {
+                          img.dataset.fallbackTried = '1';
+                          img.src = img.src.replace(/\.svg($|\?)/, '.webp$1');
+                          return;
+                        }
+                        img.style.display = 'none';
                         const fallback = document.createElement('div');
                         fallback.className = 'h-full w-full bg-neutral-100 flex items-center justify-center text-neutral-500';
                         fallback.textContent = 'Missing before image';
-                        e.currentTarget.parentElement?.appendChild(fallback);
+                        img.parentElement?.appendChild(fallback);
                       }}
                     />
                     <figcaption className="absolute left-2 top-2 text-xs font-medium bg-white/80 backdrop-blur px-2 py-1 rounded">
@@ -66,11 +73,18 @@ export default function ExamplesGallery() {
                       alt={`${ex.title} — after`}
                       className="h-full w-full object-cover"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        const img = e.currentTarget as HTMLImageElement;
+                        const tried = img.dataset.fallbackTried === '1';
+                        if (!tried && img.src.endsWith('.svg')) {
+                          img.dataset.fallbackTried = '1';
+                          img.src = img.src.replace(/\.svg($|\?)/, '.webp$1');
+                          return;
+                        }
+                        img.style.display = 'none';
                         const fallback = document.createElement('div');
                         fallback.className = 'h-full w-full bg-neutral-100 flex items-center justify-center text-neutral-500';
                         fallback.textContent = 'Missing after image';
-                        e.currentTarget.parentElement?.appendChild(fallback);
+                        img.parentElement?.appendChild(fallback);
                       }}
                     />
                     <figcaption className="absolute left-2 top-2 text-xs font-medium bg-white/80 backdrop-blur px-2 py-1 rounded">

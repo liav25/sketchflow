@@ -17,7 +17,6 @@ import {
 } from '@heroicons/react/24/solid';
 import type { DiagramFormat } from '@/app/page';
 import dynamic from 'next/dynamic';
-import { useAuth } from '@/components/AuthProvider';
 import { createClient } from '@/utils/supabase/client';
 
 // Error boundary for Mermaid rendering
@@ -120,27 +119,7 @@ export default function DiagramPreview({
   const [downloaded, setDownloaded] = useState(false);
   const [shared, setShared] = useState(false);
   const [activeView, setActiveView] = useState<'preview' | 'code'>('preview');
-  const { user, signInWithGoogle } = useAuth();
   const supabase = createClient();
-
-  // Persist current preview so auth redirect won't lose it
-  const savePreviewState = () => {
-    try {
-      const state = {
-        format,
-        diagramCode,
-        jobId: jobId || null,
-        // Explicit marker so the homepage knows to show preview
-        conversionState: 'completed' as const,
-      };
-      sessionStorage.setItem('sf.previewState', JSON.stringify(state));
-      // Always return to current page after login
-      sessionStorage.setItem('sf.redirect', window.location.pathname + window.location.search);
-    } catch (e) {
-      // Non-fatal; logging only
-      console.warn('Failed to save preview state before login:', e);
-    }
-  };
 
   // Celebration effect on mount
   useEffect(() => {
@@ -151,11 +130,6 @@ export default function DiagramPreview({
   }, []);
 
   const handleCopyCode = async () => {
-    if (!user) {
-      savePreviewState();
-      await signInWithGoogle();
-      return;
-    }
     try {
       let code = diagramCode;
       const apiBase = process.env.NEXT_PUBLIC_API_URL;
@@ -179,11 +153,6 @@ export default function DiagramPreview({
   };
 
   const handleDownload = async () => {
-    if (!user) {
-      savePreviewState();
-      signInWithGoogle();
-      return;
-    }
     let code = diagramCode;
     const apiBase = process.env.NEXT_PUBLIC_API_URL;
     if (apiBase && jobId) {
@@ -211,11 +180,6 @@ export default function DiagramPreview({
   };
 
   const handleShare = async () => {
-    if (!user) {
-      savePreviewState();
-      await signInWithGoogle();
-      return;
-    }
     if (navigator.share) {
       try {
         await navigator.share({
@@ -380,22 +344,6 @@ export default function DiagramPreview({
             <div className="space-y-6">
               {/* Code Editor Style Display */}
               <div className="bg-neutral-900 rounded-2xl overflow-hidden shadow-elevation-4 relative">
-                {!user && (
-                  <div className="absolute inset-0 bg-neutral-900/80 backdrop-blur-sm flex items-center justify-center z-10">
-                    <div className="text-center space-y-4">
-                      <p className="text-neutral-200 text-lg">Sign in with Google to view and copy code</p>
-                      <button
-                        className="btn-primary px-6 py-3"
-                        onClick={() => {
-                          savePreviewState();
-                          signInWithGoogle();
-                        }}
-                      >
-                        Sign in to Unlock
-                      </button>
-                    </div>
-                  </div>
-                )}
                 <div className="bg-neutral-800 px-6 py-4 border-b border-neutral-700 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">

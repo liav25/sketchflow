@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { ArrowRightIcon, SparklesIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import SketchUpload from '@/components/SketchUpload';
 import ConversionForm from '@/components/ConversionForm';
@@ -209,9 +210,13 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-tr from-primary-600 to-secondary-500 rounded-xl flex items-center justify-center">
-                <SparklesIcon className="w-5 h-5 text-white" />
-              </div>
+              <Image
+                src="/logo.svg"
+                alt="SketchFlow"
+                width={28}
+                height={28}
+                priority
+              />
               <span className="text-xl font-bold text-slate-800">SketchFlow</span>
             </div>
             
@@ -232,11 +237,18 @@ export default function Home() {
       <section className="relative pt-20 pb-8 lg:pt-24 lg:pb-12 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center px-4 py-2 bg-secondary-100 text-secondary-700 rounded-full text-sm font-medium mb-8 animate-fade-in">
-              <SparklesIcon className="w-4 h-4 mr-2" />
-              AI-Powered Diagram Generation
+            {/* Logo */}
+            <div className="flex justify-center mb-8 animate-fade-in">
+              <Image
+                src="/logo.svg"
+                alt="SketchFlow"
+                width={400}
+                height={400}
+                priority
+                className="opacity-90 w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 xl:w-96 xl:h-96"
+              />
             </div>
+
 
             {/* Main Headline */}
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-secondary-800 mb-4 animate-slide-up text-balance">
@@ -291,15 +303,18 @@ export default function Home() {
       <ExamplesSwitcher />
 
       {/* Ad: Homepage mid (below examples) */}
-      <section className="py-6">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <AdSlot
-            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOMEPAGE_MID}
-            className="mx-auto"
-            style={{ minHeight: 90 }}
-          />
-        </div>
-      </section>
+      {process.env.NEXT_PUBLIC_ADSENSE_ENABLED !== 'false' && process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOMEPAGE_MID ? (
+        <section className="py-6">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <AdSlot
+              slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOMEPAGE_MID}
+              className="mx-auto"
+              style={{ minHeight: 90 }}
+              showPlaceholder={false}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Features Section */}
       <section id="features" className="py-12 bg-brand-surface backdrop-blur-sm">
@@ -342,15 +357,18 @@ export default function Home() {
       </section>
 
       {/* Ad: Homepage bottom (above upload section) */}
-      <section className="py-6">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <AdSlot
-            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOMEPAGE_BOTTOM}
-            className="mx-auto"
-            style={{ minHeight: 90 }}
-          />
-        </div>
-      </section>
+      {process.env.NEXT_PUBLIC_ADSENSE_ENABLED !== 'false' && process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOMEPAGE_BOTTOM ? (
+        <section className="py-6">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <AdSlot
+              slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOMEPAGE_BOTTOM}
+              className="mx-auto"
+              style={{ minHeight: 90 }}
+              showPlaceholder={false}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Upload Section */}
       <section id="upload-section" className="py-16">

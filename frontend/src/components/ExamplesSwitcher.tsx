@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+// We use plain <img> tags so SVG examples render reliably.
 import { EXAMPLES } from "@/data/examples";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 
@@ -46,13 +46,27 @@ export default function ExamplesSwitcher() {
                 {/* Before */}
                 <div className="flex items-center justify-center px-0">
                   <div className="relative bg-white" style={{ width: 600, height: 360 }}>
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={ex.beforeSrc}
                       alt={`${ex.title || ex.slug} before`}
-                      fill
-                      sizes="(min-width: 768px) 600px, 360px"
-                      style={{ objectFit: 'contain' }}
-                      priority={i === 0}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      loading={i < 2 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      onError={(e) => {
+                        const img = e.currentTarget as HTMLImageElement;
+                        const tried = img.dataset.fallbackTried === '1';
+                        if (!tried && img.src.endsWith('.svg')) {
+                          img.dataset.fallbackTried = '1';
+                          img.src = img.src.replace(/\.svg($|\?)/, '.webp$1');
+                          return;
+                        }
+                        img.style.display = 'none';
+                        const fallback = document.createElement('div');
+                        fallback.className = 'absolute inset-0 flex items-center justify-center text-neutral-500 bg-neutral-100';
+                        fallback.textContent = 'Missing before image';
+                        img.parentElement?.appendChild(fallback);
+                      }}
                     />
                     <div
                       aria-hidden="true"
@@ -74,13 +88,27 @@ export default function ExamplesSwitcher() {
                 {/* After */}
                 <div className="flex items-center justify-center px-0">
                   <div className="relative bg-white" style={{ width: 600, height: 360 }}>
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={ex.afterSrc}
                       alt={`${ex.title || ex.slug} after`}
-                      fill
-                      sizes="(min-width: 768px) 600px, 360px"
-                      style={{ objectFit: 'contain' }}
-                      priority={i === 0}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      loading={i < 2 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      onError={(e) => {
+                        const img = e.currentTarget as HTMLImageElement;
+                        const tried = img.dataset.fallbackTried === '1';
+                        if (!tried && img.src.endsWith('.svg')) {
+                          img.dataset.fallbackTried = '1';
+                          img.src = img.src.replace(/\.svg($|\?)/, '.webp$1');
+                          return;
+                        }
+                        img.style.display = 'none';
+                        const fallback = document.createElement('div');
+                        fallback.className = 'absolute inset-0 flex items-center justify-center text-neutral-500 bg-neutral-100';
+                        fallback.textContent = 'Missing after image';
+                        img.parentElement?.appendChild(fallback);
+                      }}
                     />
                     <div
                       aria-hidden="true"

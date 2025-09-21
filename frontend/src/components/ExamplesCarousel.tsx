@@ -91,11 +91,18 @@ export default function ExamplesCarousel() {
                       alt={`${ex.title} — before`}
                       className="h-full w-full object-cover"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        const img = e.currentTarget as HTMLImageElement;
+                        const tried = img.dataset.fallbackTried === '1';
+                        if (!tried && img.src.endsWith('.svg')) {
+                          img.dataset.fallbackTried = '1';
+                          img.src = img.src.replace(/\.svg($|\?)/, '.webp$1');
+                          return;
+                        }
+                        img.style.display = 'none';
                         const fallback = document.createElement('div');
                         fallback.className = 'h-full w-full bg-neutral-100 flex items-center justify-center text-neutral-500';
                         fallback.textContent = 'Missing before image';
-                        e.currentTarget.parentElement?.appendChild(fallback);
+                        img.parentElement?.appendChild(fallback);
                       }}
                     />
                     <figcaption className="absolute left-2 top-2 text-xs font-medium bg-white/80 backdrop-blur px-2 py-1 rounded">
@@ -109,11 +116,18 @@ export default function ExamplesCarousel() {
                       alt={`${ex.title} — after`}
                       className="h-full w-full object-cover"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        const img = e.currentTarget as HTMLImageElement;
+                        const tried = img.dataset.fallbackTried === '1';
+                        if (!tried && img.src.endsWith('.svg')) {
+                          img.dataset.fallbackTried = '1';
+                          img.src = img.src.replace(/\.svg($|\?)/, '.webp$1');
+                          return;
+                        }
+                        img.style.display = 'none';
                         const fallback = document.createElement('div');
                         fallback.className = 'h-full w-full bg-neutral-100 flex items-center justify-center text-neutral-500';
                         fallback.textContent = 'Missing after image';
-                        e.currentTarget.parentElement?.appendChild(fallback);
+                        img.parentElement?.appendChild(fallback);
                       }}
                     />
                     <figcaption className="absolute left-2 top-2 text-xs font-medium bg-white/80 backdrop-blur px-2 py-1 rounded">
@@ -150,4 +164,3 @@ export default function ExamplesCarousel() {
     </section>
   );
 }
-

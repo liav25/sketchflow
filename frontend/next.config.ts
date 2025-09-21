@@ -99,6 +99,11 @@ const nextConfig: NextConfig = {
   
   // Disable React strict mode in production to prevent double-hydration issues
   reactStrictMode: process.env.NODE_ENV !== 'production',
+
+  // Serve modern formats where supported for smaller images
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
   
   async headers() {
     // Disable CSP in development to avoid Turbopack issues

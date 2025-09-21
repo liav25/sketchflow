@@ -1,3 +1,5 @@
+// Example images now live as public assets (SVG). Use path strings.
+
 export type ExampleItem = {
   slug: string;
   title: string;
@@ -13,16 +15,16 @@ export const EXAMPLES: ExampleItem[] = [
     title: 'Pizza Order Flow',
     description: 'From notebook sketch to clean flowchart',
     format: 'mermaid',
-    beforeSrc: '/examples/pizza-flow-before.jpeg',
-    afterSrc: '/examples/pizza-flow-after.png',
+    beforeSrc: '/examples/pizza-flow-before.webp',
+    afterSrc: '/examples/pizza-flow-after.webp',
   },
   {
     slug: 'user-db-response',
     title: 'User → DB → Response',
     description: 'Whiteboard idea transformed into a tidy sequence',
     format: 'mermaid',
-    beforeSrc: '/examples/user-db-response-before.jpeg',
-    afterSrc: '/examples/user-db-response-after.jpeg',
+    beforeSrc: '/examples/user-db-response-before.webp',
+    afterSrc: '/examples/user-db-response-after.webp',
   },
   {
     slug: 'system-architecture',
@@ -30,6 +32,6 @@ export const EXAMPLES: ExampleItem[] = [
     description: 'Complex whiteboard system converted to a structured diagram',
     format: 'mermaid',
     beforeSrc: '/examples/system-architecture-before.webp',
-    afterSrc: '/examples/system-architecture-after.png',
+    afterSrc: '/examples/system-architecture-after.webp',
   },
 ];

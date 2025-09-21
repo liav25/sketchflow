@@ -5,6 +5,7 @@ from typing import List
 class Settings(BaseSettings):
     # App settings
     app_name: str = "SketchFlow Backend"
+    app_env: str = "production"  # development, production
     debug: bool = False
     # Mocking settings (useful in dev)
     mock_mode: bool = False  # When true, conversion returns mock output
@@ -20,9 +21,13 @@ class Settings(BaseSettings):
     
     # Storage settings
     storage_path: str = "storage"
+
+    # Database settings
+    database_url: str = "sqlite+aiosqlite:///./storage/sketchflow.db"
     
     # Pydantic v2 style config: ignore unknown env vars to avoid dev friction
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Look for .env in parent directory (project root)
+    model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
 
 
 settings = Settings()
