@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     storage_path: str = "storage"
 
     # Database settings
-    database_url: str = "sqlite+aiosqlite:///./storage/sketchflow.db"
+    database_url: str | None = None
     
     # Pydantic v2 style config: ignore unknown env vars to avoid dev friction
     # Look for .env in parent directory (project root)
