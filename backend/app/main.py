@@ -8,8 +8,9 @@ import uuid
 from datetime import datetime
 
 from app.core.config import settings
-from app.core.db import engine, Base
+from app.core.db import engine, Base, SessionLocal
 from app.models.request_log import RequestLog
+from app.models.feedback import Feedback
 from app.services.conversion import ConversionService
 from app.core.logging_config import configure_logging, get_logger
 from app.core.auth import get_current_user, get_current_user_optional
@@ -261,6 +262,15 @@ class CodeResponse(BaseModel):
     code: str
 
 
+class FeedbackRequest(BaseModel):
+    feedback_text: str
+
+
+class FeedbackResponse(BaseModel):
+    id: int
+    message: str
+
+
 @app.get("/")
 async def root():
     return {"message": "SketchFlow API", "version": "1.0.0"}
@@ -436,6 +446,40 @@ async def get_conversion_code(job_id: str, user=Depends(get_current_user_optiona
     if not item:
         raise HTTPException(status_code=404, detail="Job not found")
     return CodeResponse(job_id=job_id, format=item.get("format", "mermaid"), code=item.get("code", ""))
+
+
+@app.post("/api/feedback", response_model=FeedbackResponse)
+async def submit_feedback(
+    feedback: FeedbackRequest,
+    request: Request,
+    current_user=Depends(get_current_user_optional),
+):
+    """Submit feedback from users. Works for both authenticated and anonymous users."""
+    try:
+        # Get client IP and user agent
+        client_ip = request.headers.get("x-forwarded-for") or request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
+        user_id = (current_user or {}).get("id") if current_user else None
+        
+        # Create feedback record
+        async with SessionLocal() as session:
+            feedback_record = Feedback(
+                client_ip=client_ip,
+                user_id=user_id,
+                feedback_text=feedback.feedback_text,
+                user_agent=user_agent,
+            )
+            session.add(feedback_record)
+            await session.commit()
+            await session.refresh(feedback_record)
+            
+            return FeedbackResponse(
+                id=feedback_record.id,
+                message="Thank you for your feedback!"
+            )
+    except Exception as e:
+        logger.error(f"Failed to save feedback: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save feedback")
 
 
 if __name__ == "__main__":

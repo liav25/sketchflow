@@ -227,6 +227,9 @@ export default function Home() {
               <a href="#how-it-works" className="text-neutral-600 hover:text-secondary-700 font-medium transition-colors">
                 How It Works
               </a>
+              <a href="/feedback" className="text-neutral-600 hover:text-secondary-700 font-medium transition-colors">
+                Feedback
+              </a>
               <UserMenu />
             </div>
           </div>
